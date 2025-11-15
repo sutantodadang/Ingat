@@ -34,22 +34,6 @@ name = "mcp-service"
 path = "src/bin/mcp_service.rs"
 required-features = ["mcp-server", "tauri-plugin"]
 
-# Underscored variants for tooling compatibility (Tauri bundler / packager expecting mcp_* names)
-[[bin]]
-name = "mcp_bridge_bin"
-path = "src/bin/mcp_bridge.rs"
-required-features = ["mcp-server"]
-
-[[bin]]
-name = "mcp_stdio_bin"
-path = "src/bin/mcp_stdio.rs"
-required-features = ["mcp-server"]
-
-[[bin]]
-name = "mcp_service_bin"
-path = "src/bin/mcp_service.rs"
-required-features = ["mcp-server", "tauri-plugin"]
-
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
