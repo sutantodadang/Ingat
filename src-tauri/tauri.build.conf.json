@@ -33,9 +33,15 @@
     ],
     "resources": ["binaries/*"],
     "externalBin": [
-      "binaries/mcp-stdio",
-      "binaries/mcp-bridge",
-      "binaries/mcp-service"
+      "binaries/mcp-stdio-x86_64-pc-windows-msvc",
+      "binaries/mcp-bridge-x86_64-pc-windows-msvc",
+      "binaries/mcp-service-x86_64-pc-windows-msvc",
+      "binaries/mcp-stdio-x86_64-unknown-linux-gnu",
+      "binaries/mcp-bridge-x86_64-unknown-linux-gnu",
+      "binaries/mcp-service-x86_64-unknown-linux-gnu",
+      "binaries/mcp-stdio-aarch64-apple-darwin",
+      "binaries/mcp-bridge-aarch64-apple-darwin",
+      "binaries/mcp-service-aarch64-apple-darwin"
     ]
   }
 }
