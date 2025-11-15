@@ -72,13 +72,14 @@ jobs:
         shell: bash
         run: |
           cd src-tauri
-          # build both dash and underscored binary names so tooling that expects either will find them
-          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
-          cargo build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }} || true
-          cargo build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }} || true
-          cargo build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }} || true
+          # Build all binaries together to minimize build time (single compilation for shared dependencies)
+          cargo build --release \
+            --bin mcp-stdio --bin mcp_stdio \
+            --bin mcp-bridge --bin mcp_bridge \
+            --features mcp-server --target ${{ matrix.target }}
+          cargo build --release \
+            --bin mcp-service --bin mcp_service \
+            --features mcp-server,tauri-plugin --target ${{ matrix.target }}
           mkdir -p binaries || true
           cp target/${{ matrix.target }}/release/mcp-stdio.exe binaries/mcp-stdio-${{ matrix.target }}.exe || true
           cp target/${{ matrix.target }}/release/mcp-bridge.exe binaries/mcp-bridge-${{ matrix.target }}.exe || true
@@ -93,13 +94,14 @@ jobs:
         shell: bash
         run: |
           cd src-tauri
-          # build both dash and underscored binary names so tooling that expects either will find them
-          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
-          cargo build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }} || true
-          cargo build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }} || true
-          cargo build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }} || true
+          # Build all binaries together to minimize build time (single compilation for shared dependencies)
+          cargo build --release \
+            --bin mcp-stdio --bin mcp_stdio \
+            --bin mcp-bridge --bin mcp_bridge \
+            --features mcp-server --target ${{ matrix.target }}
+          cargo build --release \
+            --bin mcp-service --bin mcp_service \
+            --features mcp-server,tauri-plugin --target ${{ matrix.target }}
           mkdir -p binaries || true
           cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }} || true
           cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }} || true
@@ -115,13 +117,14 @@ jobs:
         shell: bash
         run: |
           cd src-tauri
-          # build both dash and underscored binary names so tooling that expects either will find them
-          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
-          cargo build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }} || true
-          cargo build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }} || true
-          cargo build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }} || true
+          # Build all binaries together to minimize build time (single compilation for shared dependencies)
+          cargo build --release \
+            --bin mcp-stdio --bin mcp_stdio \
+            --bin mcp-bridge --bin mcp_bridge \
+            --features mcp-server --target ${{ matrix.target }}
+          cargo build --release \
+            --bin mcp-service --bin mcp_service \
+            --features mcp-server,tauri-plugin --target ${{ matrix.target }}
           mkdir -p binaries || true
           cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }} || true
           cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }} || true
