@@ -72,26 +72,42 @@ jobs:
         shell: bash
         run: |
           cd src-tauri
+          # build both dash and underscored binary names so tooling that expects either will find them
           cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
           cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
           cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          cargo build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }} || true
+          cargo build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }} || true
+          cargo build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }} || true
           mkdir -p binaries || true
-          cp target/${{ matrix.target }}/release/mcp-stdio.exe binaries/mcp-stdio-${{ matrix.target }}.exe
-          cp target/${{ matrix.target }}/release/mcp-bridge.exe binaries/mcp-bridge-${{ matrix.target }}.exe
-          cp target/${{ matrix.target }}/release/mcp-service.exe binaries/mcp-service-${{ matrix.target }}.exe
+          cp target/${{ matrix.target }}/release/mcp-stdio.exe binaries/mcp-stdio-${{ matrix.target }}.exe || true
+          cp target/${{ matrix.target }}/release/mcp-bridge.exe binaries/mcp-bridge-${{ matrix.target }}.exe || true
+          cp target/${{ matrix.target }}/release/mcp-service.exe binaries/mcp-service-${{ matrix.target }}.exe || true
+          # also copy underscored names if present (these are what the tauri bundler may try to use)
+          cp target/${{ matrix.target }}/release/mcp_stdio.exe binaries/mcp_stdio-${{ matrix.target }}.exe || true
+          cp target/${{ matrix.target }}/release/mcp_bridge.exe binaries/mcp_bridge-${{ matrix.target }}.exe || true
+          cp target/${{ matrix.target }}/release/mcp_service.exe binaries/mcp_service-${{ matrix.target }}.exe || true
 
       - name: Build MCP binaries for Linux
         if: matrix.platform == 'ubuntu-22.04'
         shell: bash
         run: |
           cd src-tauri
+          # build both dash and underscored binary names so tooling that expects either will find them
           cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
           cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
           cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          cargo build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }} || true
+          cargo build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }} || true
+          cargo build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }} || true
           mkdir -p binaries || true
-          cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }}
-          cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }}
-          cp target/${{ matrix.target }}/release/mcp-service binaries/mcp-service-${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }} || true
+          cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }} || true
+          cp target/${{ matrix.target }}/release/mcp-service binaries/mcp-service-${{ matrix.target }} || true
+          # also copy underscored names if present (these are what the tauri bundler may try to use)
+          cp target/${{ matrix.target }}/release/mcp_stdio binaries/mcp_stdio-${{ matrix.target }} || true
+          cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge-${{ matrix.target }} || true
+          cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service-${{ matrix.target }} || true
           chmod +x binaries/mcp-*
 
       - name: Build MCP binaries for macOS
@@ -99,13 +115,21 @@ jobs:
         shell: bash
         run: |
           cd src-tauri
+          # build both dash and underscored binary names so tooling that expects either will find them
           cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
           cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
           cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          cargo build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }} || true
+          cargo build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }} || true
+          cargo build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }} || true
           mkdir -p binaries || true
-          cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }}
-          cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }}
-          cp target/${{ matrix.target }}/release/mcp-service binaries/mcp-service-${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }} || true
+          cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }} || true
+          cp target/${{ matrix.target }}/release/mcp-service binaries/mcp-service-${{ matrix.target }} || true
+          # also copy underscored names if present (these are what the tauri bundler may try to use)
+          cp target/${{ matrix.target }}/release/mcp_stdio binaries/mcp_stdio-${{ matrix.target }} || true
+          cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge-${{ matrix.target }} || true
+          cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service-${{ matrix.target }} || true
           chmod +x binaries/mcp-*
 
       - name: Verify binaries exist
