@@ -67,36 +67,37 @@ jobs:
       - name: Build frontend
         run: bun run build
 
-      - name: Build MCP binaries for bundling
+      - name: Build MCP binaries for Linux
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           cd src-tauri
           cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
           cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
           cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          mkdir -p binaries
+          cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/mcp-service binaries/mcp-service-${{ matrix.target }}
+          chmod +x binaries/mcp-*
 
-      - name: Prepare binaries for Tauri bundle (Windows)
-        if: matrix.platform == 'windows-latest'
-        run: |
-          mkdir -p src-tauri/binaries
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-stdio.exe src-tauri/binaries/mcp-stdio-x86_64-pc-windows-msvc.exe
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-bridge.exe src-tauri/binaries/mcp-bridge-x86_64-pc-windows-msvc.exe
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-service.exe src-tauri/binaries/mcp-service-x86_64-pc-windows-msvc.exe
-
-      - name: Prepare binaries for Tauri bundle (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          mkdir -p src-tauri/binaries
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-stdio src-tauri/binaries/mcp-stdio-x86_64-unknown-linux-gnu
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-bridge src-tauri/binaries/mcp-bridge-x86_64-unknown-linux-gnu
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-service src-tauri/binaries/mcp-service-x86_64-unknown-linux-gnu
-
-      - name: Prepare binaries for Tauri bundle (macOS)
+      - name: Build MCP binaries for macOS
         if: matrix.platform == 'macos-latest'
         run: |
-          mkdir -p src-tauri/binaries
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-stdio src-tauri/binaries/mcp-stdio-aarch64-apple-darwin
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-bridge src-tauri/binaries/mcp-bridge-aarch64-apple-darwin
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-service src-tauri/binaries/mcp-service-aarch64-apple-darwin
+          cd src-tauri
+          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
+          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
+          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          mkdir -p binaries
+          cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/mcp-service binaries/mcp-service-${{ matrix.target }}
+          chmod +x binaries/mcp-*
+
+      - name: Verify binaries exist
+        shell: bash
+        run: |
+          echo "Checking for binaries in src-tauri/binaries/..."
+          ls -la src-tauri/binaries/
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -106,62 +107,11 @@ jobs:
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
-          releaseName: "Memorust v__VERSION__"
+          releaseName: "Ingat v__VERSION__"
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
-
-      - name: Package standalone MCP Binaries (Windows)
-        if: matrix.platform == 'windows-latest'
-        run: |
-          mkdir -p dist/mcp-standalone
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-bridge.exe dist/mcp-standalone/
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-stdio.exe dist/mcp-standalone/
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-service.exe dist/mcp-standalone/
-          cd dist/mcp-standalone
-          7z a ../../memorust-mcp-standalone-windows-x64.zip mcp-bridge.exe mcp-stdio.exe mcp-service.exe
-
-      - name: Package standalone MCP Binaries (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          mkdir -p dist/mcp-standalone
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-bridge dist/mcp-standalone/
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-stdio dist/mcp-standalone/
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-service dist/mcp-standalone/
-          cd dist/mcp-standalone
-          tar -czf ../../memorust-mcp-standalone-linux-x64.tar.gz mcp-bridge mcp-stdio mcp-service
-
-      - name: Package standalone MCP Binaries (macOS)
-        if: matrix.platform == 'macos-latest'
-        run: |
-          mkdir -p dist/mcp-standalone
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-bridge dist/mcp-standalone/
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-stdio dist/mcp-standalone/
-          cp src-tauri/target/${{ matrix.target }}/release/mcp-service dist/mcp-standalone/
-          cd dist/mcp-standalone
-          tar -czf ../../memorust-mcp-standalone-macos-arm64.tar.gz mcp-bridge mcp-stdio mcp-service
-
-      - name: Upload standalone MCP Binaries artifact (Windows)
-        if: matrix.platform == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: memorust-mcp-standalone-windows-x64
-          path: memorust-mcp-standalone-windows-x64.zip
-
-      - name: Upload standalone MCP Binaries artifact (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
-        uses: actions/upload-artifact@v4
-        with:
-          name: memorust-mcp-standalone-linux-x64
-          path: memorust-mcp-standalone-linux-x64.tar.gz
-
-      - name: Upload standalone MCP Binaries artifact (macOS)
-        if: matrix.platform == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: memorust-mcp-standalone-macos-arm64
-          path: memorust-mcp-standalone-macos-arm64.tar.gz
 
   publish-release:
     name: Publish Release
@@ -242,19 +192,19 @@ jobs:
         if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: memorust-installer-windows
+          name: ingat-installer-windows
           path: src-tauri/target/release/bundle/msi/*.msi
 
       - name: Upload installer artifact (Linux DEB)
         if: matrix.platform == 'ubuntu-22.04'
         uses: actions/upload-artifact@v4
         with:
-          name: memorust-installer-linux
+          name: ingat-installer-linux
           path: src-tauri/target/release/bundle/deb/*.deb
 
       - name: Upload installer artifact (macOS DMG)
         if: matrix.platform == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: memorust-installer-macos
+          name: ingat-installer-macos
           path: src-tauri/target/release/bundle/dmg/*.dmg
