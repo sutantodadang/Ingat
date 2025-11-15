@@ -72,9 +72,9 @@ jobs:
         shell: bash
         run: |
           cd src-tauri
-          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }} --config src-tauri/tauri.windows.conf.json
+          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }} --config src-tauri/tauri.windows.conf.json
+          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }} --config src-tauri/tauri.windows.conf.json
           mkdir -p binaries || true
           cp target/${{ matrix.target }}/release/mcp-stdio.exe binaries/mcp-stdio-${{ matrix.target }}.exe
           cp target/${{ matrix.target }}/release/mcp-bridge.exe binaries/mcp-bridge-${{ matrix.target }}.exe
@@ -85,9 +85,9 @@ jobs:
         shell: bash
         run: |
           cd src-tauri
-          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }} --config src-tauri/tauri.linux.conf.json
+          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }} --config src-tauri/tauri.linux.conf.json
+          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }} --config src-tauri/tauri.linux.conf.json
           mkdir -p binaries || true
           cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }}
           cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }}
@@ -99,9 +99,9 @@ jobs:
         shell: bash
         run: |
           cd src-tauri
-          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          cargo build --release --bin mcp-stdio --features mcp-server --target ${{ matrix.target }} --config src-tauri/tauri.macos.conf.json
+          cargo build --release --bin mcp-bridge --features mcp-server --target ${{ matrix.target }} --config src-tauri/tauri.macos.conf.json
+          cargo build --release --bin mcp-service --features mcp-server,tauri-plugin --target ${{ matrix.target }} --config src-tauri/tauri.macos.conf.json
           mkdir -p binaries || true
           cp target/${{ matrix.target }}/release/mcp-stdio binaries/mcp-stdio-${{ matrix.target }}
           cp target/${{ matrix.target }}/release/mcp-bridge binaries/mcp-bridge-${{ matrix.target }}
