@@ -141,6 +141,17 @@ jobs:
           echo "Checking for binaries in src-tauri/binaries/..."
           ls -la src-tauri/binaries/
 
+      - name: Build mcp_bridge
+        working-directory: src-tauri
+        run: |
+          # Try to build the specific binary; if it fails, build all binaries as fallback
+          if cargo build --release --bin mcp_bridge --target ${{ matrix.target }}; then
+            echo "Built mcp_bridge"
+          else
+            echo "mcp_bridge build failed; attempting to build all binaries"
+            cargo build --release --bins --target ${{ matrix.target }}
+          fi
+
       - name: Build Tauri app
         run: bunx tauri build --target ${{ matrix.target }} ${{ matrix.args }} --config src-tauri/tauri.build.conf.json
         env:
