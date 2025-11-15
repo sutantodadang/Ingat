@@ -153,7 +153,7 @@ jobs:
           fi
 
       - name: Build Tauri app
-        run: bunx tauri build --target ${{ matrix.target }} ${{ matrix.args }} --config src-tauri/tauri.build.conf.json
+        run: bun run tauri build --target ${{ matrix.target }} ${{ matrix.args }} --config src-tauri/tauri.build.conf.json
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
