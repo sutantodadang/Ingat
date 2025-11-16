@@ -81,6 +81,10 @@ jobs:
           cp target/${{ matrix.target }}/release/mcp_stdio.exe binaries/mcp_stdio-${{ matrix.target }}.exe
           cp target/${{ matrix.target }}/release/mcp_bridge.exe binaries/mcp_bridge-${{ matrix.target }}.exe
           cp target/${{ matrix.target }}/release/mcp_service.exe binaries/mcp_service-${{ matrix.target }}.exe
+          # Copy without suffix for Tauri bundler
+          cp target/${{ matrix.target }}/release/mcp_stdio.exe binaries/mcp_stdio.exe
+          cp target/${{ matrix.target }}/release/mcp_bridge.exe binaries/mcp_bridge.exe
+          cp target/${{ matrix.target }}/release/mcp_service.exe binaries/mcp_service.exe
 
       - name: Build MCP binaries for Linux
         if: matrix.platform == 'ubuntu-22.04'
