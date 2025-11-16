@@ -44,6 +44,10 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: Install cargo-xwin (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: cargo install --locked cargo-xwin
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -73,9 +77,9 @@ jobs:
         run: |
           cd src-tauri
           # Build all binaries together to minimize build time (single compilation for shared dependencies)
-          cargo build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }}
-          cargo build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          cargo xwin build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }}
+          cargo xwin build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }}
+          cargo xwin build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
           mkdir -p binaries
           # Copy with target suffix for archiving
           cp target/${{ matrix.target }}/release/mcp_stdio.exe binaries/mcp_stdio-${{ matrix.target }}.exe
@@ -124,7 +128,15 @@ jobs:
           echo "Checking for binaries in src-tauri/binaries/..."
           ls -la src-tauri/binaries/
 
-      - name: Build Tauri app
+      - name: Build Tauri app (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: bun run tauri build --runner cargo-xwin --target ${{ matrix.target }} ${{ matrix.args }} --config src-tauri/tauri.build.conf.json
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+
+      - name: Build Tauri app (Linux/macOS)
+        if: matrix.platform != 'windows-latest'
         run: bun run tauri build --target ${{ matrix.target }} ${{ matrix.args }} --config src-tauri/tauri.build.conf.json
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
