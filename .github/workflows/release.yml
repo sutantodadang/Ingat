@@ -166,5 +166,4 @@ jobs:
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }} --target ${{ matrix.target }}
-          configPath: src-tauri/tauri.build.conf.json
+          args: ${{ matrix.args }} --target ${{ matrix.target }} --config src-tauri/tauri.build.conf.json
