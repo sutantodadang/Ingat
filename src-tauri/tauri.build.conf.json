@@ -36,6 +36,11 @@
       "binaries/mcp_stdio",
       "binaries/mcp_bridge",
       "binaries/mcp_service"
-    ]
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
   }
 }
