@@ -148,9 +148,9 @@ impl ServiceManager {
     /// 3. In target/debug (for development)
     fn find_binary(&self) -> Result<std::path::PathBuf> {
         let binary_name = if cfg!(windows) {
-            "mcp-service.exe"
+            "mcp_service.exe"
         } else {
-            "mcp-service"
+            "mcp_service"
         };
 
         // 1. Check next to current executable (bundled)
@@ -185,7 +185,7 @@ impl ServiceManager {
         }
 
         Err(anyhow::anyhow!(
-            "Could not find mcp-service binary. Please ensure it's built and accessible."
+            "Could not find mcp_service binary. Please ensure it's built and accessible."
         ))
     }
 

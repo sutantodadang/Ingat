@@ -47,10 +47,6 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
-      - name: Install cargo-xwin (Windows)
-        if: matrix.platform == 'windows-latest'
-        run: cargo install --locked cargo-xwin
-
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -80,9 +76,9 @@ jobs:
         run: |
           cd src-tauri
           # Build all binaries together to minimize build time (single compilation for shared dependencies)
-          cargo xwin build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }}
-          cargo xwin build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }}
-          cargo xwin build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
+          cargo build --release --bin mcp_stdio --features mcp-server --target ${{ matrix.target }}
+          cargo build --release --bin mcp_bridge --features mcp-server --target ${{ matrix.target }}
+          cargo build --release --bin mcp_service --features mcp-server,tauri-plugin --target ${{ matrix.target }}
           mkdir -p binaries
           # Copy with target suffix for archiving
           cp target/${{ matrix.target }}/release/mcp_stdio.exe binaries/mcp_stdio-${{ matrix.target }}.exe
@@ -132,6 +128,31 @@ jobs:
           cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge
           cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service
           chmod +x binaries/mcp_*
+
+      - name: Verify binaries exist
+        shell: bash
+        run: |
+          echo "=== Checking for binaries in src-tauri/binaries/ ==="
+          ls -la src-tauri/binaries/ || echo "Directory not found!"
+          echo ""
+          echo "=== Checking each required binary for Tauri bundler ==="
+          cd src-tauri
+          for binary in mcp_stdio mcp_bridge mcp_service; do
+            if [ "${{ matrix.platform }}" = "windows-latest" ]; then
+              file="binaries/${binary}.exe"
+            else
+              file="binaries/${binary}"
+            fi
+            if [ -f "$file" ]; then
+              echo "✓ Found: $file ($(du -h "$file" | cut -f1))"
+              file "$file" 2>/dev/null || true
+            else
+              echo "✗ MISSING: $file"
+            fi
+          done
+          echo ""
+          echo "=== All files in binaries/ directory ==="
+          ls -lh binaries/ 2>/dev/null || echo "Cannot list directory"
 
       - name: Build and Release with Tauri Action
         uses: tauri-apps/tauri-action@v0
