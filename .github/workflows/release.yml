@@ -85,9 +85,9 @@ jobs:
           cp target/${{ matrix.target }}/release/mcp_bridge.exe binaries/mcp_bridge-${{ matrix.target }}.exe
           cp target/${{ matrix.target }}/release/mcp_service.exe binaries/mcp_service-${{ matrix.target }}.exe
           # Copy without suffix for Tauri bundler
-          cp target/${{ matrix.target }}/release/mcp_stdio.exe binaries/mcp_stdio.exe
-          cp target/${{ matrix.target }}/release/mcp_bridge.exe binaries/mcp_bridge.exe
-          cp target/${{ matrix.target }}/release/mcp_service.exe binaries/mcp_service.exe
+          # cp target/${{ matrix.target }}/release/mcp_stdio.exe binaries/mcp_stdio.exe
+          # cp target/${{ matrix.target }}/release/mcp_bridge.exe binaries/mcp_bridge.exe
+          # cp target/${{ matrix.target }}/release/mcp_service.exe binaries/mcp_service.exe
 
       - name: Build MCP binaries for Linux
         if: matrix.platform == 'ubuntu-22.04'
@@ -104,9 +104,9 @@ jobs:
           cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge-${{ matrix.target }}
           cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service-${{ matrix.target }}
           # Copy without suffix for Tauri bundler
-          cp target/${{ matrix.target }}/release/mcp_stdio binaries/mcp_stdio
-          cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge
-          cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service
+          # cp target/${{ matrix.target }}/release/mcp_stdio binaries/mcp_stdio
+          # cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge
+          # cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service
           chmod +x binaries/mcp_*
 
       - name: Build MCP binaries for macOS
@@ -124,9 +124,9 @@ jobs:
           cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge-${{ matrix.target }}
           cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service-${{ matrix.target }}
           # Copy without suffix for Tauri bundler
-          cp target/${{ matrix.target }}/release/mcp_stdio binaries/mcp_stdio
-          cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge
-          cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service
+          # cp target/${{ matrix.target }}/release/mcp_stdio binaries/mcp_stdio
+          # cp target/${{ matrix.target }}/release/mcp_bridge binaries/mcp_bridge
+          # cp target/${{ matrix.target }}/release/mcp_service binaries/mcp_service
           chmod +x binaries/mcp_*
 
       - name: Verify binaries exist
