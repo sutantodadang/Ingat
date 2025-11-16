@@ -20,17 +20,17 @@ name = "ingat"
 path = "src/main.rs"
 
 [[bin]]
-name = "mcp-bridge"
+name = "mcp_bridge"
 path = "src/bin/mcp_bridge.rs"
 required-features = ["mcp-server"]
 
 [[bin]]
-name = "mcp-stdio"
+name = "mcp_stdio"
 path = "src/bin/mcp_stdio.rs"
 required-features = ["mcp-server"]
 
 [[bin]]
-name = "mcp-service"
+name = "mcp_service"
 path = "src/bin/mcp_service.rs"
 required-features = ["mcp-server", "tauri-plugin"]
 

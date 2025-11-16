@@ -39,7 +39,7 @@ bun install
 
 This automatically:
 1. ✅ Builds the backend service if needed
-2. ✅ Starts `mcp-service` (holds database lock)
+2. ✅ Starts `mcp_service` (holds database lock)
 3. ✅ Starts the UI in remote mode
 4. ✅ Enables simultaneous IDE connections
 
@@ -51,10 +51,10 @@ bun install
 
 # 2. Build the service
 cd src-tauri
-cargo build --release --bin mcp-service --features mcp-server,tauri-plugin
+cargo build --release --bin mcp_service --features mcp-server,tauri-plugin
 
 # 3. Start the service (keep this terminal open)
-./target/release/mcp-service
+./target/release/mcp_service
 
 # 4. In a new terminal, start the UI
 cd ..
@@ -94,9 +94,9 @@ Ingat provides three MCP server binaries for different use cases:
 
 | Binary | Transport | Best For | Setup Guide |
 |--------|-----------|----------|-------------|
-| **`mcp-stdio`** | stdin/stdout | VS Code, Cursor, Windsurf, Sublime | [IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md) |
-| **`mcp-bridge`** | HTTP/SSE | Zed, Claude Desktop | [IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md) |
-| **`mcp-service`** 🆕 | HTTP/REST + SSE | **Multi-client simultaneous usage** | [SETUP_GUIDE.md](./SETUP_GUIDE.md) |
+| **`mcp_stdio`** | stdin/stdout | VS Code, Cursor, Windsurf, Sublime | [IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md) |
+| **`mcp_bridge`** | HTTP/SSE | Zed, Claude Desktop | [IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md) |
+| **`mcp_service`** 🆕 | HTTP/REST + SSE | **Multi-client simultaneous usage** | [SETUP_GUIDE.md](./SETUP_GUIDE.md) |
 
 ### Building Binaries
 
@@ -104,9 +104,9 @@ Ingat provides three MCP server binaries for different use cases:
 cd src-tauri
 
 # Build all MCP binaries
-cargo build --release --bin mcp-stdio --features mcp-server
-cargo build --release --bin mcp-bridge --features mcp-server
-cargo build --release --bin mcp-service --features mcp-server,tauri-plugin
+cargo build --release --bin mcp_stdio --features mcp-server
+cargo build --release --bin mcp_bridge --features mcp-server
+cargo build --release --bin mcp_service --features mcp-server,tauri-plugin
 ```
 
 Binaries will be in: `src-tauri/target/release/`

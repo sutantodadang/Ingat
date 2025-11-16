@@ -33,9 +33,9 @@
     ],
     "resources": ["binaries/*"],
     "externalBin": [
-      "binaries/mcp-stdio",
-      "binaries/mcp-bridge",
-      "binaries/mcp-service"
+      "binaries/mcp_stdio",
+      "binaries/mcp_bridge",
+      "binaries/mcp_service"
     ]
   }
 }
