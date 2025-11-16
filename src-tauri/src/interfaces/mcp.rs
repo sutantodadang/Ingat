@@ -372,7 +372,7 @@ pub async fn run_mcp_stdio_server(service_cell: Arc<RwLock<Arc<ContextService>>>
         match reader.read_line(&mut line).await {
             Ok(0) => {
                 // EOF - client closed connection
-                info!(target: "memorust::mcp", "Client closed stdio connection");
+                info!(target: "ingat::mcp", "Client closed stdio connection");
                 break;
             }
             Ok(_) => {
@@ -381,7 +381,7 @@ pub async fn run_mcp_stdio_server(service_cell: Arc<RwLock<Arc<ContextService>>>
                     continue;
                 }
 
-                debug!(target: "memorust::mcp", "Received: {}", trimmed);
+                debug!(target: "ingat::mcp", "Received: {}", trimmed);
 
                 // Parse and handle JSON-RPC request
                 match serde_json::from_str::<serde_json::Value>(trimmed) {
@@ -394,22 +394,22 @@ pub async fn run_mcp_stdio_server(service_cell: Arc<RwLock<Arc<ContextService>>>
                             .unwrap_or_else(|e| format!(r#"{{"jsonrpc":"2.0","error":{{"code":-32603,"message":"Failed to serialize response: {}"}}}}"#, e));
 
                         if let Err(e) = stdout.write_all(response_json.as_bytes()).await {
-                            error!(target: "memorust::mcp", "Failed to write response: {}", e);
+                            error!(target: "ingat::mcp", "Failed to write response: {}", e);
                             break;
                         }
                         if let Err(e) = stdout.write_all(b"\n").await {
-                            error!(target: "memorust::mcp", "Failed to write newline: {}", e);
+                            error!(target: "ingat::mcp", "Failed to write newline: {}", e);
                             break;
                         }
                         if let Err(e) = stdout.flush().await {
-                            error!(target: "memorust::mcp", "Failed to flush stdout: {}", e);
+                            error!(target: "ingat::mcp", "Failed to flush stdout: {}", e);
                             break;
                         }
 
-                        debug!(target: "memorust::mcp", "Sent: {}", response_json);
+                        debug!(target: "ingat::mcp", "Sent: {}", response_json);
                     }
                     Err(e) => {
-                        error!(target: "memorust::mcp", "Failed to parse JSON-RPC request: {}", e);
+                        error!(target: "ingat::mcp", "Failed to parse JSON-RPC request: {}", e);
                         let error_response = json!({
                             "jsonrpc": "2.0",
                             "error": {
@@ -426,13 +426,13 @@ pub async fn run_mcp_stdio_server(service_cell: Arc<RwLock<Arc<ContextService>>>
                 }
             }
             Err(e) => {
-                error!(target: "memorust::mcp", "Failed to read from stdin: {}", e);
+                error!(target: "ingat::mcp", "Failed to read from stdin: {}", e);
                 break;
             }
         }
     }
 
-    info!(target: "memorust::mcp", "MCP stdio server terminated");
+    info!(target: "ingat::mcp", "MCP stdio server terminated");
     Ok(())
 }
 

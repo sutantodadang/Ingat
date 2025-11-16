@@ -202,10 +202,7 @@ fn try_run() -> Result<()> {
 
         // Attempt to start the mcp-service as a detached background process
         if let Err(e) = service_manager.start() {
-            eprintln!(
-                "[ingat] Warning: Could not auto-start mcp-service: {}",
-                e
-            );
+            eprintln!("[ingat] Warning: Could not auto-start mcp-service: {}", e);
             eprintln!("[ingat] Continuing in local database mode");
         } else {
             // Give the service a moment to start
@@ -308,7 +305,7 @@ pub async fn run_mcp_bridge(config: Option<McpServerConfig>) -> Result<()> {
 
     log_mcp_startup(runtime.metadata());
     info!(
-        target: "memorust::mcp",
+        target: "ingat::mcp",
         "Standalone bridge running. Press Ctrl+C to exit."
     );
 
@@ -330,7 +327,7 @@ pub async fn run_mcp_stdio() -> Result<()> {
     let service_cell = Arc::new(RwLock::new(handles.service));
 
     info!(
-        target: "memorust::mcp",
+        target: "ingat::mcp",
         "Starting MCP stdio server (stdin/stdout transport)..."
     );
 
@@ -346,7 +343,7 @@ fn log_mcp_startup(metadata: &McpEndpointMetadata) {
     let sse_url = metadata.sse_url();
     let post_url = metadata.post_url();
     info!(
-        target: "memorust::mcp",
+        target: "ingat::mcp",
         bind = %metadata.bind_addr,
         sse = %sse_url,
         post = %post_url,
