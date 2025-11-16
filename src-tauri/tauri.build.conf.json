@@ -23,7 +23,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "app", "deb", "appimage", "dmg"],
+    "targets": "all",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -31,7 +31,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["binaries/*"],
     "externalBin": [
       "binaries/mcp_stdio",
       "binaries/mcp_bridge",
