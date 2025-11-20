@@ -1,8 +1,8 @@
 [package]
 name = "ingat"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["sutantodadang"]
 edition = "2021"
 default-run = "ingat"
 

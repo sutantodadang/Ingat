@@ -1,5 +1,59 @@
 # Ingat Release Notes
 
+## Version 0.1.1 - Power Management & UX Improvements (2024-11-20)
+
+### 🚀 Major Features
+
+#### Power Management System
+- **Cross-Platform Sleep/Wake Handling**: Service automatically survives laptop sleep cycles on Windows, Linux, and macOS
+- **Background Health Monitoring**: Continuously monitors service health every 10 seconds
+- **Automatic Crash Recovery**: Service restarts automatically if it crashes (within 12 seconds)
+- **Fast Wake Restoration**: Service starts within 500ms of system wake, preventing database lock conflicts
+- **State Persistence**: Service state saved to disk, survives app crashes and reboots
+- **Zero Configuration**: Works automatically across all sleep/wake scenarios
+
+#### Window State Integration
+- **Window Position Memory**: Remembers window position (x, y coordinates) across sessions
+- **Window Size Memory**: Remembers window dimensions (width, height)
+- **Maximized State**: Preserves maximized/minimized state
+- **Multi-Monitor Support**: Handles multiple monitor setups intelligently
+- **Off-Screen Detection**: Automatically repositions window if it would be off-screen
+
+### ✨ Enhancements
+
+#### Service Lifecycle Management
+- Proactive service state management prevents IDE startup race conditions
+- Health monitor detects and restarts crashed services automatically
+- 2-second delay between restart attempts to prevent restart loops
+- Clear logging for all power management events
+
+#### Cross-Platform Consistency
+- Same behavior on Windows, Linux, and macOS
+- Platform-specific data directories for state files
+- Consistent polling approach (10-second intervals) across all platforms
+
+### 🐛 Bug Fixes
+- **Database Lock on Wake**: Fixed database lock conflicts when laptop wakes and IDE opens before main app
+- **Service Not Persisting**: Service now runs as detached process, surviving app close
+
+### 📚 Documentation
+- Added comprehensive power management documentation
+- Added window state integration guide
+- Added cross-platform testing procedures
+- Added architecture explanation documents
+
+### 🔧 Technical Details
+- New `power_manager` module for service lifecycle management
+- Integrated `tauri-plugin-window-state` for window geometry persistence
+- Background thread for continuous health monitoring
+- JSON state files for both service and window states
+
+### 📦 Dependencies
+- Added `tauri-plugin-window-state` v2.4.1 for window state management
+- Added Windows-specific dependencies (optional, for future enhancements)
+
+---
+
 ## Version 0.1.0 - Initial Release (2024-11-15)
 
 ### 🎉 Major Features

@@ -71,6 +71,8 @@ function Build-Binary {
     Write-Step "Building $BinaryName for $TargetTriple..."
     Write-Host "   Features: $Features" -ForegroundColor Gray
 
+    # Use tauri.build.conf.json to avoid circular dependency (no externalBin check)
+    $env:TAURI_CONFIG = "tauri.build.conf.json"
     $buildCmd = "cargo build --release --bin $BinaryName --features $Features --target $TargetTriple"
 
     try {
@@ -78,7 +80,10 @@ function Build-Binary {
         Write-Info "Build successful: $BinaryName ($TargetTriple)"
     } catch {
         Write-Error "Build failed for $BinaryName ($TargetTriple)"
+        Remove-Item Env:\TAURI_CONFIG -ErrorAction SilentlyContinue
         return $false
+    } finally {
+        Remove-Item Env:\TAURI_CONFIG -ErrorAction SilentlyContinue
     }
 
     # Copy to binaries folder with correct naming
