@@ -9,6 +9,7 @@ pub mod domain;
 pub mod infrastructure;
 #[cfg(feature = "mcp-server")]
 pub mod interfaces;
+pub mod power_manager;
 pub mod service_manager;
 pub mod settings;
 
@@ -29,6 +30,7 @@ use infrastructure::{
 #[cfg(feature = "mcp-server")]
 use interfaces::mcp::{McpEndpointMetadata, McpRuntime, McpServerConfig};
 
+use power_manager::PowerManager;
 use service_manager::ServiceManager;
 use settings::{available_backends, ConfigManager, EmbeddingBackend};
 #[cfg(feature = "mcp-server")]
@@ -40,15 +42,21 @@ struct AppState {
     store: Arc<dyn VectorStore>,
     config: Arc<ConfigManager>,
     service_manager: Arc<ServiceManager>,
+    power_manager: Arc<PowerManager>,
 }
 
 impl AppState {
-    fn new(handles: AppHandles, service_manager: Arc<ServiceManager>) -> Self {
+    fn new(
+        handles: AppHandles,
+        service_manager: Arc<ServiceManager>,
+        power_manager: Arc<PowerManager>,
+    ) -> Self {
         Self {
             service: Arc::new(RwLock::new(handles.service)),
             store: handles.store,
             config: handles.config,
             service_manager,
+            power_manager,
         }
     }
 
@@ -189,6 +197,12 @@ fn try_run() -> Result<()> {
     // Initialize the service manager
     let service_manager = Arc::new(ServiceManager::new());
 
+    // Initialize power manager to handle sleep/wake events
+    let power_manager = Arc::new(
+        PowerManager::new(Arc::clone(&service_manager))
+            .context("failed to initialize power manager")?,
+    );
+
     // Check if service is already running before attempting to start
     let host = std::env::var("INGAT_SERVICE_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = std::env::var("INGAT_SERVICE_PORT")
@@ -207,13 +221,21 @@ fn try_run() -> Result<()> {
         } else {
             // Give the service a moment to start
             std::thread::sleep(std::time::Duration::from_millis(500));
+            // Mark service as running so it can be restored after sleep
+            power_manager.mark_service_running();
         }
     } else {
         eprintln!("[ingat] mcp-service is already running - will use remote mode");
+        // Mark service as running so it can be restored after sleep
+        power_manager.mark_service_running();
     }
 
     let handles = build_environment().context("failed to bootstrap Ingat environment")?;
-    let app_state = AppState::new(handles, Arc::clone(&service_manager));
+    let app_state = AppState::new(
+        handles,
+        Arc::clone(&service_manager),
+        Arc::clone(&power_manager),
+    );
 
     #[cfg(feature = "mcp-server")]
     let mcp_runtime = {
@@ -226,10 +248,20 @@ fn try_run() -> Result<()> {
         runtime
     };
 
+    // Clone power_manager for setup closure
+    let power_manager_for_setup = Arc::clone(&power_manager);
+
     let run_result = tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .manage(app_state)
+        .setup(move |app| {
+            // Initialize power monitoring after app setup
+            power_manager::init_power_monitoring(app.handle(), power_manager_for_setup)
+                .context("failed to initialize power monitoring")?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             ingest_context,
             search_contexts,
