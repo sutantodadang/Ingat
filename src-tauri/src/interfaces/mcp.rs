@@ -474,11 +474,20 @@ async fn handle_jsonrpc_request(
             match params {
                 Some(p) => {
                     let tool_name = p.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                    let arguments = p.get("arguments").cloned().unwrap_or(json!({}));
+                    let mut arguments = p.get("arguments").cloned().unwrap_or(json!({}));
 
                     // Call the appropriate tool method directly
                     let result = match tool_name {
                         "ingest_context" => {
+                            if let Some(kind_val) = arguments.get_mut("kind") {
+                                if let Some(kind_str) = kind_val.as_str() {
+                                    if let Ok(parsed) =
+                                        serde_json::from_str::<serde_json::Value>(kind_str)
+                                    {
+                                        *kind_val = parsed;
+                                    }
+                                }
+                            }
                             match serde_json::from_value::<IngestContextRequest>(arguments) {
                                 Ok(req) => server.ingest(req).await,
                                 Err(e) => Err(McpError::invalid_params(
