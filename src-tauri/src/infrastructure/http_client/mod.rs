@@ -8,8 +8,8 @@ mod remote_store;
 
 pub use remote_store::RemoteVectorStore;
 
-use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use anyhow::Result;
+use serde::Deserialize;
 
 /// Default service host
 pub const DEFAULT_HOST: &str = "127.0.0.1";

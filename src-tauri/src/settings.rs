@@ -97,9 +97,18 @@ impl EmbeddingBackend {
 
 impl Default for EmbeddingBackend {
     fn default() -> Self {
-        EmbeddingBackend::Simple {
-            model: default_simple_model(),
-            dimensions: default_simple_dim(),
+        #[cfg(feature = "fastembed-engine")]
+        {
+            EmbeddingBackend::FastEmbed {
+                model: default_fastembed_model(),
+            }
+        }
+        #[cfg(not(feature = "fastembed-engine"))]
+        {
+            EmbeddingBackend::Simple {
+                model: default_simple_model(),
+                dimensions: default_simple_dim(),
+            }
         }
     }
 }
@@ -173,11 +182,15 @@ impl ConfigManager {
 pub fn available_backends() -> Vec<EmbeddingBackend> {
     #[cfg(feature = "fastembed-engine")]
     {
-        let mut options = vec![EmbeddingBackend::default()];
-        options.push(EmbeddingBackend::FastEmbed {
-            model: default_fastembed_model(),
-        });
-        options
+        vec![
+            EmbeddingBackend::FastEmbed {
+                model: default_fastembed_model(),
+            },
+            EmbeddingBackend::Simple {
+                model: default_simple_model(),
+                dimensions: default_simple_dim(),
+            },
+        ]
     }
     #[cfg(not(feature = "fastembed-engine"))]
     {
