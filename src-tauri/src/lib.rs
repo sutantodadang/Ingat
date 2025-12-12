@@ -24,7 +24,8 @@ use domain::{ContextSummary, DomainError};
 use infrastructure::FastEmbedEngine;
 
 use infrastructure::{
-    check_service_availability, RemoteVectorStore, SimpleEmbedEngine, SledVectorStore,
+    check_service_availability, NoOpEmbeddingEngine, RemoteVectorStore, SimpleEmbedEngine,
+    SledVectorStore,
 };
 
 #[cfg(feature = "mcp-server")]
@@ -472,9 +473,14 @@ fn build_environment_remote(host: &str, port: u16) -> Result<AppHandles> {
     // Use remote implementations
     let store: Arc<dyn VectorStore> = Arc::new(RemoteVectorStore::new(host, port));
 
-    // Use a dummy embedder since embedding happens on the remote service
-    let (embedder, service_config) = init_embedder(&active_config.embedding)
-        .context("failed to initialise embedding backend")?;
+    // Use a no-op embedder since embedding happens on the remote service
+    // The RemoteVectorStore handles all operations including embedding via HTTP proxy
+    let embedder: Arc<dyn EmbeddingEngineTrait> = Arc::new(NoOpEmbeddingEngine::for_remote_mode());
+    let default_limit = application::services::ServiceConfig::default().default_limit;
+    let service_config = application::services::ServiceConfig::new(
+        active_config.embedding.model_name(),
+        default_limit,
+    );
 
     let service = Arc::new(ContextService::new(
         embedder,
