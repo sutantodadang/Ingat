@@ -1,5 +1,29 @@
 # Ingat Release Notes
 
+## Version 0.1.5 - Remote Mode Store/Retrieve Fix (2025-12-16)
+
+### 🐛 Bug Fixes
+
+- **Fixed remote mode context persistence** when using `mcp-stdio` (Windsurf/Cascade, VS Code, Cursor) while `mcp-service` is already running in the background.
+- **Fixed remote mode retrieval** by ensuring ingest/search/history are proxied to `mcp-service` over HTTP (instead of attempting local embedding).
+
+### ✨ Enhancements
+
+- Added `GET /api/projects` on `mcp-service` for project listing in remote mode.
+- Introduced a shared service abstraction so the app/MCP runtime can swap between local (embedded) and remote (HTTP) backends cleanly.
+
+### 🔧 Technical Details
+
+- New `ContextApi` trait to unify local and remote implementations.
+- New `RemoteContextClient` (HTTP) used in remote mode for `ingest/search/history/projects`.
+- `mcp-stdio` now reliably works as a thin MCP transport layer on top of a background `mcp-service`.
+
+### 📋 Notes
+
+- In remote mode, embedding backend changes are not supported from the client (embedding is handled by the service).
+
+---
+
 ## Version 0.1.4 - Remote Mode Fix (2024-12-12)
 
 ### 🐛 Bug Fixes

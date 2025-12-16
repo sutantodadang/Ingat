@@ -4,11 +4,12 @@
 //! operations to a running mcp-service instance via HTTP, eliminating the need
 //! for direct database access and avoiding lock conflicts.
 
+mod remote_service;
 mod remote_store;
 
+pub use remote_service::RemoteContextClient;
 pub use remote_store::RemoteVectorStore;
 
-use anyhow::Result;
 use serde::Deserialize;
 
 /// Default service host
@@ -21,7 +22,6 @@ pub const DEFAULT_PORT: u16 = 3200;
 #[derive(Debug, Deserialize)]
 struct HealthResponse {
     status: String,
-    service: String,
 }
 
 /// Check if the mcp-service is running and accessible

@@ -7,6 +7,7 @@ use crate::{
         HealthStatusResponse, IngestContextRequest, SearchRequest, SearchResponse, SearchResultDto,
         SummaryListResponse,
     },
+    application::services::ContextApi,
     domain::{
         ContextEmbedding, ContextKind, ContextRecord, ContextSummary, DomainError, QueryFilters,
         RetrievalQuery,
@@ -244,5 +245,35 @@ impl ContextService {
             }
             _ => Ok(()),
         }
+    }
+}
+
+impl ContextApi for ContextService {
+    fn ingest(&self, payload: IngestContextRequest) -> Result<ContextSummary, DomainError> {
+        ContextService::ingest(self, payload)
+    }
+
+    fn search(&self, request: SearchRequest) -> Result<SearchResponse, DomainError> {
+        ContextService::search(self, request)
+    }
+
+    fn history(
+        &self,
+        project: Option<String>,
+        limit: Option<usize>,
+    ) -> Result<SummaryListResponse, DomainError> {
+        ContextService::history(self, project, limit)
+    }
+
+    fn projects(&self) -> Result<Vec<String>, DomainError> {
+        ContextService::projects(self)
+    }
+
+    fn health(&self) -> Result<HealthStatusResponse, DomainError> {
+        ContextService::health(self)
+    }
+
+    fn embedding_dimensions(&self) -> Option<usize> {
+        ContextService::embedding_dimensions(self)
     }
 }

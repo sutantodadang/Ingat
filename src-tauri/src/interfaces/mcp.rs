@@ -16,7 +16,7 @@ use tokio_util::sync::CancellationToken;
 use crate::{
     application::{
         dtos::{IngestContextRequest, SearchRequest},
-        ContextService,
+        services::ContextApi,
     },
     domain::DomainError,
 };
@@ -151,7 +151,7 @@ impl Drop for McpServerHandle {
 
 /// Boot an MCP SSE server that mirrors Ingat's ingest/search capabilities.
 pub async fn spawn_mcp_server(
-    service_cell: Arc<RwLock<Arc<ContextService>>>,
+    service_cell: Arc<RwLock<Arc<dyn ContextApi>>>,
     config: McpServerConfig,
 ) -> Result<McpServerHandle> {
     let root_token = CancellationToken::new();
@@ -177,7 +177,7 @@ pub struct McpRuntime {
 
 impl McpRuntime {
     pub async fn start(
-        service_cell: Arc<RwLock<Arc<ContextService>>>,
+        service_cell: Arc<RwLock<Arc<dyn ContextApi>>>,
         config: Option<McpServerConfig>,
     ) -> Result<Self> {
         let cfg = config.unwrap_or_else(McpServerConfig::from_env);
@@ -196,19 +196,19 @@ impl McpRuntime {
 
 #[derive(Clone)]
 pub struct IngatMcpServer {
-    service_cell: Arc<RwLock<Arc<ContextService>>>,
+    service_cell: Arc<RwLock<Arc<dyn ContextApi>>>,
     tool_router: ToolRouter<Self>,
 }
 
 impl IngatMcpServer {
-    pub fn new(service_cell: Arc<RwLock<Arc<ContextService>>>) -> Self {
+    pub fn new(service_cell: Arc<RwLock<Arc<dyn ContextApi>>>) -> Self {
         Self {
             service_cell,
             tool_router: Self::tool_router(),
         }
     }
 
-    fn current_service(&self) -> Arc<ContextService> {
+    fn current_service(&self) -> Arc<dyn ContextApi> {
         Arc::clone(&self.service_cell.read())
     }
 
@@ -355,7 +355,7 @@ fn internal_error(message: impl Into<String>) -> McpError {
 
 /// Run MCP server using stdio transport (stdin/stdout).
 /// This is compatible with VS Code, Cursor, Windsurf, and other process-spawning MCP clients.
-pub async fn run_mcp_stdio_server(service_cell: Arc<RwLock<Arc<ContextService>>>) -> Result<()> {
+pub async fn run_mcp_stdio_server(service_cell: Arc<RwLock<Arc<dyn ContextApi>>>) -> Result<()> {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
     use tracing::{debug, error, info};
 

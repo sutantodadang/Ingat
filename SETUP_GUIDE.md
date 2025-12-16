@@ -23,11 +23,13 @@ This guide covers everything from installation to IDE integration, including the
 ### Prerequisites
 
 **Required:**
+
 - [Node.js](https://nodejs.org/) v18+ or [Bun](https://bun.sh/) (recommended)
 - [Rust](https://rustup.rs/) latest stable toolchain
 - [Git](https://git-scm.com/)
 
 **Platform-specific:**
+
 - **Windows:** [Microsoft Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 - **macOS:** Xcode Command Line Tools (`xcode-select --install`)
 - **Linux:** Build essentials (`sudo apt install build-essential libwebkit2gtk-4.0-dev`)
@@ -61,6 +63,7 @@ Download the installer for your platform from the [Releases](https://github.com/
 **Linux:** `ingat.AppImage` or `ingat.deb`
 
 The installer includes:
+
 - Tauri desktop application
 - All MCP server binaries (`mcp-stdio`, `mcp-bridge`, `mcp-service`)
 - Helper scripts
@@ -88,12 +91,14 @@ This mode opens the database directly. It's simple but **doesn't support simulta
 **Use this if:** You want to use the UI AND your IDE(s) at the same time.
 
 **Windows PowerShell:**
+
 ```powershell
 # Automatic setup
 .\start-with-service.ps1
 ```
 
 **Manual steps:**
+
 ```bash
 # 1. Start the service (keep this terminal open)
 .\src-tauri\target\release\mcp-service.exe
@@ -105,9 +110,12 @@ bun run dev
 ```
 
 **What happens:**
+
 - `mcp-service` holds the database lock
 - UI and IDEs connect via HTTP (remote mode)
 - No database conflicts!
+
+✅ **Important (Windsurf/Cascade):** If you keep `mcp-service` running as a background process, configure Windsurf to spawn `mcp-stdio`. The stdio MCP server will detect the running service and proxy all context operations to it, making “store / retrieve context” reliable.
 
 ---
 
@@ -144,16 +152,19 @@ Binary location: `src-tauri/target/release/mcp-service.exe` (Windows) or `mcp-se
 ### Step 2: Start the Service
 
 **Windows:**
+
 ```powershell
 .\src-tauri\target\release\mcp-service.exe
 ```
 
 **macOS/Linux:**
+
 ```bash
 ./src-tauri/target/release/mcp-service
 ```
 
 **Expected output:**
+
 ```
 Starting Ingat Backend Service v0.1.0
 Initializing application environment...
@@ -166,6 +177,7 @@ Application initialized successfully
 ```
 
 **Verify it's running:**
+
 ```bash
 curl http://localhost:3200/health
 # Expected: {"status":"healthy","service":"ingat-backend"}
@@ -180,6 +192,7 @@ bun run dev
 ```
 
 **Look for these logs:**
+
 ```
 [ingat] Checking for mcp-service at 127.0.0.1:3200...
 [ingat] ✓ Detected running mcp-service at 127.0.0.1:3200
@@ -201,14 +214,14 @@ See [IDE Integration](#ide-integration) section below.
 
 ### Supported IDEs
 
-| IDE | Transport | Configuration File | Details |
-|-----|-----------|-------------------|---------|
-| VS Code | stdio | `.vscode/settings.json` | [Link](#vs-code) |
-| Cursor | stdio | `.cursor/mcp.json` | [Link](#cursor) |
-| Windsurf | stdio | `.windsurf/mcp.json` | [Link](#windsurf) |
-| Sublime Text | stdio | Codeium settings | [Link](#sublime-text) |
-| Zed | SSE | `settings.json` | [Link](#zed) |
-| Claude Desktop | SSE | `claude_desktop_config.json` | [Link](#claude-desktop) |
+| IDE            | Transport | Configuration File           | Details                 |
+| -------------- | --------- | ---------------------------- | ----------------------- |
+| VS Code        | stdio     | `.vscode/settings.json`      | [Link](#vs-code)        |
+| Cursor         | stdio     | `.cursor/mcp.json`           | [Link](#cursor)         |
+| Windsurf       | stdio     | `.windsurf/mcp.json`         | [Link](#windsurf)       |
+| Sublime Text   | stdio     | Codeium settings             | [Link](#sublime-text)   |
+| Zed            | SSE       | `settings.json`              | [Link](#zed)            |
+| Claude Desktop | SSE       | `claude_desktop_config.json` | [Link](#claude-desktop) |
 
 ---
 
@@ -233,6 +246,7 @@ See [IDE Integration](#ide-integration) section below.
 ```
 
 **On macOS/Linux:**
+
 ```json
 {
   "mcp.servers": {
@@ -248,6 +262,54 @@ See [IDE Integration](#ide-integration) section below.
 4. Open the MCP panel to verify connection
 
 **Logs:** Check Output panel > Select "MCP" from dropdown
+
+---
+
+### Windsurf
+
+This is the recommended setup when you want Windsurf (Cascade) to store and retrieve Ingat context while `mcp-service` is already running.
+
+**Prerequisite:** Start `mcp-service` first (background or separate terminal).
+
+**Configure Windsurf to run `mcp-stdio`:**
+
+Create/edit `.windsurf/mcp.json` (path may vary by Windsurf version):
+
+**Windows example:**
+
+```json
+{
+  "mcpServers": {
+    "ingat": {
+      "command": "C:\\path\\to\\ingat\\src-tauri\\target\\release\\mcp-stdio.exe",
+      "args": []
+    }
+  }
+}
+```
+
+**macOS/Linux example:**
+
+```json
+{
+  "mcpServers": {
+    "ingat": {
+      "command": "/path/to/ingat/src-tauri/target/release/mcp-stdio",
+      "args": []
+    }
+  }
+}
+```
+
+**How it works:**
+
+- `mcp-stdio` starts and checks `http://INGAT_SERVICE_HOST:INGAT_SERVICE_PORT/health`
+- If `mcp-service` is up, Ingat uses **REMOTE MODE** and proxies:
+  - `ingest_context` → `POST /api/contexts`
+  - `search_contexts` → `POST /api/search`
+  - history/projects → `GET /api/contexts`, `GET /api/projects`
+
+If the service is not running, `mcp-stdio` falls back to local mode (which can conflict with other running clients).
 
 ---
 
@@ -271,6 +333,7 @@ See [IDE Integration](#ide-integration) section below.
 ```
 
 **On macOS/Linux:**
+
 ```json
 {
   "mcpServers": {
@@ -407,6 +470,7 @@ export INGAT_MCP_POST_PATH="/message"
 ```
 
 **Windows PowerShell:**
+
 ```powershell
 $env:INGAT_SERVICE_PORT = "3200"
 $env:INGAT_LOG = "debug"
@@ -415,11 +479,13 @@ $env:INGAT_LOG = "debug"
 ### Data Storage Locations
 
 **Default locations:**
+
 - **Windows:** `%APPDATA%\ingat\Ingat\data`
 - **macOS:** `~/Library/Application Support/ingat/Ingat/data`
 - **Linux:** `~/.config/ingat/Ingat/data`
 
 **Contents:**
+
 - `store/` - Database files (sled)
 - `config.json` - User configuration
 - `embeddings/` - Cached embeddings (if using FastEmbed)
@@ -443,6 +509,7 @@ Edit `config.json` in your data directory:
 ```
 
 **Embedding backends:**
+
 - `"simple"` - Lightweight deterministic hash (default)
 - `"fastembed"` - High-quality semantic embeddings (requires FastEmbed feature)
 
@@ -453,6 +520,7 @@ Edit `config.json` in your data directory:
 ### Database Lock Errors
 
 **Symptom:**
+
 ```
 storage failure: failed to open sled db: IO error: could not acquire lock
 ```
@@ -462,10 +530,11 @@ storage failure: failed to open sled db: IO error: could not acquire lock
 **Solution:**
 
 1. **Stop everything:**
+
    ```powershell
    # Windows
    Get-Process | Where-Object {$_.ProcessName -match "ingat|mcp"} | Stop-Process -Force
-   
+
    # macOS/Linux
    pkill -f "ingat|mcp"
    ```
@@ -488,19 +557,21 @@ storage failure: failed to open sled db: IO error: could not acquire lock
 **Solution:**
 
 1. **Check for running processes:**
+
    ```powershell
    # Windows
    Get-Process | Where-Object {$_.ProcessName -match "ingat|mcp"}
-   
+
    # macOS/Linux
    ps aux | grep -i ingat
    ```
 
 2. **Kill all Ingat processes:**
+
    ```powershell
    # Windows
    Get-Process -Name ingat,mcp-* | Stop-Process -Force
-   
+
    # macOS/Linux
    killall ingat mcp-stdio mcp-bridge mcp-service
    ```
@@ -516,19 +587,22 @@ storage failure: failed to open sled db: IO error: could not acquire lock
 **Causes & Solutions:**
 
 1. **Service not running**
+
    ```bash
    # Check service health
    curl http://localhost:3200/health
-   
+
    # If fails, start the service
    .\src-tauri\target\release\mcp-service.exe
    ```
 
 2. **Wrong binary path**
+
    - Verify path in IDE config is correct
    - Use absolute paths: `C:\full\path\to\mcp-stdio.exe`
 
 3. **Binary not built**
+
    ```bash
    # Rebuild
    cd src-tauri
@@ -550,6 +624,7 @@ storage failure: failed to open sled db: IO error: could not acquire lock
 **Solution:**
 
 1. **Verify service is running:**
+
    ```bash
    curl http://localhost:3200/health
    ```
@@ -557,6 +632,7 @@ storage failure: failed to open sled db: IO error: could not acquire lock
 2. **Check for firewall blocking port 3200**
 
 3. **Start service manually:**
+
    ```bash
    .\src-tauri\target\release\mcp-service.exe
    ```
@@ -574,10 +650,11 @@ storage failure: failed to open sled db: IO error: could not acquire lock
 **Solution:**
 
 1. **Find what's using the port:**
+
    ```powershell
    # Windows
    netstat -ano | findstr :3200
-   
+
    # macOS/Linux
    lsof -i :3200
    ```
@@ -597,11 +674,13 @@ storage failure: failed to open sled db: IO error: could not acquire lock
 **Solution:**
 
 1. **Check file exists:**
+
    ```bash
    ls src-tauri/target/release/mcp-stdio*
    ```
 
 2. **Build it:**
+
    ```bash
    cd src-tauri
    cargo build --release --bin mcp-stdio --features mcp-server
@@ -620,6 +699,7 @@ storage failure: failed to open sled db: IO error: could not acquire lock
 To allow remote connections:
 
 1. **Bind to all interfaces:**
+
    ```bash
    export INGAT_SERVICE_HOST="0.0.0.0"
    .\src-tauri\target\release\mcp-service.exe
@@ -628,14 +708,15 @@ To allow remote connections:
 2. **Set up reverse proxy with TLS (recommended):**
 
    **nginx example:**
+
    ```nginx
    server {
        listen 443 ssl;
        server_name ingat.example.com;
-       
+
        ssl_certificate /path/to/cert.pem;
        ssl_certificate_key /path/to/key.pem;
-       
+
        location / {
            proxy_pass http://localhost:3200;
            proxy_http_version 1.1;
@@ -661,6 +742,7 @@ To allow remote connections:
 For higher quality semantic embeddings:
 
 1. **Build with FastEmbed:**
+
    ```bash
    cd src-tauri
    cargo build --release --features fastembed-engine,mcp-server,tauri-plugin
@@ -668,6 +750,7 @@ For higher quality semantic embeddings:
 
 2. **Update config:**
    Edit your data directory's `config.json`:
+
    ```json
    {
      "embedding": {
@@ -707,6 +790,7 @@ WantedBy=multi-user.target
 ```
 
 Enable and start:
+
 ```bash
 sudo systemctl enable ingat-service
 sudo systemctl start ingat-service
@@ -737,6 +821,7 @@ Create `~/Library/LaunchAgents/com.ingat.service.plist`:
 ```
 
 Load:
+
 ```bash
 launchctl load ~/Library/LaunchAgents/com.ingat.service.plist
 ```
@@ -773,16 +858,19 @@ Configure clients to point to specific ports.
 ### Windows PowerShell
 
 **Start everything:**
+
 ```powershell
 .\start-with-service.ps1
 ```
 
 **Check service status:**
+
 ```powershell
 .\scripts\check-service.ps1
 ```
 
 **Stop service:**
+
 ```powershell
 .\scripts\stop-service.ps1
 ```
@@ -790,11 +878,13 @@ Configure clients to point to specific ports.
 ### Unix/macOS
 
 **Check service:**
+
 ```bash
 ./scripts/check-service.sh
 ```
 
 **Stop service:**
+
 ```bash
 ./scripts/stop-service.sh
 ```
@@ -852,10 +942,10 @@ A: Copy your entire data directory (see [Data Storage Locations](#data-storage-l
 ✅ **Single Client:** Just run `bun run dev` (simple, but one client at a time)  
 ✅ **Multi-Client:** Use `mcp-service` + UI + IDEs (recommended, no conflicts)  
 ✅ **Automatic Detection:** Everything detects the service automatically  
-✅ **Zero Config:** Default settings work for 99% of users  
+✅ **Zero Config:** Default settings work for 99% of users
 
 **Get started now with:** `.\start-with-service.ps1` (Windows) 🚀
 
 ---
 
-*Last updated: 2024-11-15*
+_Last updated: 2024-11-15_

@@ -13,7 +13,7 @@ pub mod power_manager;
 pub mod service_manager;
 pub mod settings;
 
-use application::services::{EmbeddingEngine as EmbeddingEngineTrait, VectorStore};
+use application::services::{ContextApi, EmbeddingEngine as EmbeddingEngineTrait, VectorStore};
 use application::{
     ContextService, EmbeddingBackendListResponse, EmbeddingBackendOption, HealthStatusResponse,
     IngestContextRequest, SearchRequest, SearchResponse, SummaryListResponse,
@@ -24,8 +24,7 @@ use domain::{ContextSummary, DomainError};
 use infrastructure::FastEmbedEngine;
 
 use infrastructure::{
-    check_service_availability, NoOpEmbeddingEngine, RemoteVectorStore, SimpleEmbedEngine,
-    SledVectorStore,
+    check_service_availability, RemoteContextClient, SimpleEmbedEngine, SledVectorStore,
 };
 
 #[cfg(feature = "mcp-server")]
@@ -39,38 +38,35 @@ use tracing::info;
 
 /// Global state shared with Tauri commands.
 struct AppState {
-    service: Arc<RwLock<Arc<ContextService>>>,
-    store: Arc<dyn VectorStore>,
+    service: Arc<RwLock<Arc<dyn ContextApi>>>,
+    store: Option<Arc<dyn VectorStore>>,
     config: Arc<ConfigManager>,
     service_manager: Arc<ServiceManager>,
-    power_manager: Arc<PowerManager>,
 }
 
 impl AppState {
     fn new(
         handles: AppHandles,
         service_manager: Arc<ServiceManager>,
-        power_manager: Arc<PowerManager>,
     ) -> Self {
         Self {
             service: Arc::new(RwLock::new(handles.service)),
             store: handles.store,
             config: handles.config,
             service_manager,
-            power_manager,
         }
     }
 
-    fn service(&self) -> Arc<ContextService> {
+    fn service(&self) -> Arc<dyn ContextApi> {
         Arc::clone(&self.service.read())
     }
 
-    fn service_cell(&self) -> Arc<RwLock<Arc<ContextService>>> {
+    fn service_cell(&self) -> Arc<RwLock<Arc<dyn ContextApi>>> {
         Arc::clone(&self.service)
     }
 
-    fn store(&self) -> Arc<dyn VectorStore> {
-        Arc::clone(&self.store)
+    fn store(&self) -> Option<Arc<dyn VectorStore>> {
+        self.store.as_ref().map(Arc::clone)
     }
 
     fn config(&self) -> Arc<ConfigManager> {
@@ -79,8 +75,8 @@ impl AppState {
 }
 
 pub struct AppHandles {
-    pub service: Arc<ContextService>,
-    pub store: Arc<dyn VectorStore>,
+    pub service: Arc<dyn ContextApi>,
+    pub store: Option<Arc<dyn VectorStore>>,
     pub config: Arc<ConfigManager>,
     pub data_dir: std::path::PathBuf,
 }
@@ -155,7 +151,9 @@ async fn set_embedding_backend(
     payload: UpdateEmbeddingBackendRequest,
 ) -> Result<EmbeddingBackendListResponse, String> {
     let service_cell = state.service_cell();
-    let store = state.store();
+    let store = state
+        .store()
+        .ok_or_else(|| "embedding backend changes are not supported in remote mode".to_string())?;
     let config = state.config();
 
     tauri::async_runtime::spawn_blocking(move || -> Result<EmbeddingBackendListResponse> {
@@ -164,7 +162,7 @@ async fn set_embedding_backend(
         let backend = apply_model_override(base_backend, payload.model_override);
 
         let (embedder, service_config) = init_embedder(&backend)?;
-        let new_service = Arc::new(ContextService::new(
+        let new_service: Arc<dyn ContextApi> = Arc::new(ContextService::new(
             embedder,
             Arc::clone(&store),
             service_config,
@@ -235,7 +233,6 @@ fn try_run() -> Result<()> {
     let app_state = AppState::new(
         handles,
         Arc::clone(&service_manager),
-        Arc::clone(&power_manager),
     );
 
     #[cfg(feature = "mcp-server")]
@@ -449,7 +446,7 @@ fn build_environment_local() -> Result<AppHandles> {
 
     let (embedder, service_config) = init_embedder(&active_config.embedding)
         .context("failed to initialise embedding backend")?;
-    let service = Arc::new(ContextService::new(
+    let service: Arc<dyn ContextApi> = Arc::new(ContextService::new(
         embedder,
         Arc::clone(&store),
         service_config,
@@ -457,7 +454,7 @@ fn build_environment_local() -> Result<AppHandles> {
 
     Ok(AppHandles {
         service,
-        store,
+        store: Some(store),
         config,
         data_dir,
     })
@@ -468,29 +465,15 @@ fn build_environment_remote(host: &str, port: u16) -> Result<AppHandles> {
     let data_dir = resolve_data_dir()?;
 
     let config = Arc::new(ConfigManager::load(&data_dir).context("failed to load config file")?);
-    let active_config = config.current();
 
-    // Use remote implementations
-    let store: Arc<dyn VectorStore> = Arc::new(RemoteVectorStore::new(host, port));
-
-    // Use a no-op embedder since embedding happens on the remote service
-    // The RemoteVectorStore handles all operations including embedding via HTTP proxy
-    let embedder: Arc<dyn EmbeddingEngineTrait> = Arc::new(NoOpEmbeddingEngine::for_remote_mode());
-    let default_limit = application::services::ServiceConfig::default().default_limit;
-    let service_config = application::services::ServiceConfig::new(
-        active_config.embedding.model_name(),
-        default_limit,
-    );
-
-    let service = Arc::new(ContextService::new(
-        embedder,
-        Arc::clone(&store),
-        service_config,
-    ));
+    // In remote mode, all ingest/search/history operations are proxied to the running
+    // `mcp-service`. Do not embed locally (especially important on macOS where remote
+    // mode is typically used), otherwise NoOpEmbeddingEngine would fail every request.
+    let service: Arc<dyn ContextApi> = Arc::new(RemoteContextClient::new(host, port));
 
     Ok(AppHandles {
         service,
-        store,
+        store: None,
         config,
         data_dir,
     })
@@ -521,7 +504,7 @@ fn init_embedder(
 
 fn build_backend_response(
     active: EmbeddingBackend,
-    service: Arc<ContextService>,
+    service: Arc<dyn ContextApi>,
 ) -> EmbeddingBackendListResponse {
     let mut options: Vec<EmbeddingBackendOption> = available_backends()
         .into_iter()

@@ -25,6 +25,7 @@ Ingat is a Tauri-based desktop application that stores code snippets, fixes, dis
 ### Option 1: Use the Helper Script (Recommended)
 
 **Windows:**
+
 ```powershell
 # Clone and navigate
 git clone https://github.com/sutantodadang/Ingat.git
@@ -38,6 +39,7 @@ bun install
 ```
 
 This automatically:
+
 1. ✅ Builds the backend service if needed
 2. ✅ Starts `mcp_service` (holds database lock)
 3. ✅ Starts the UI in remote mode
@@ -63,25 +65,41 @@ bun run dev
 
 **Then connect your IDE(s)** - see [SETUP_GUIDE.md](./SETUP_GUIDE.md)
 
+### Recommended for Windsurf (Cascade)
+
+If you already keep `mcp-service` running as a background process, configure Windsurf to spawn `mcp-stdio`.
+
+**What happens:**
+
+- `mcp-stdio` detects the running `mcp-service` and automatically uses **REMOTE MODE**
+- All `ingest_context` / `search_contexts` calls are proxied to the service over HTTP
+- This avoids local DB locks and makes “store / retrieve context” reliable when multiple clients are open
+
+See [SETUP_GUIDE.md](./SETUP_GUIDE.md) → **Multi-Client Mode** and **Windsurf**.
+
 ---
 
 ## 📖 Documentation
 
 ### 🌟 Start Here
+
 - **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** - **Complete setup guide for all users** ⭐
 - **[START_HERE.md](./START_HERE.md)** - Quick troubleshooting and startup guide
 
 ### IDE Integration
+
 - **[IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md)** - Setup for VS Code, Cursor, Windsurf, Sublime, Zed, Claude
 - **[VS_CODE_MCP_SETUP.md](./VS_CODE_MCP_SETUP.md)** - Detailed VS Code/Cursor/Windsurf guide
 
 ### Multi-Client Usage
+
 - **[QUICK_FIX.md](./QUICK_FIX.md)** - Fix database lock conflicts
 - **[MULTI_CLIENT_USAGE.md](./MULTI_CLIENT_USAGE.md)** - Use Ingat across multiple IDEs
 - **[UNIFIED_SERVICE_SETUP.md](./UNIFIED_SERVICE_SETUP.md)** - Production backend service guide
 - **[docs/REMOTE_MODE.md](./docs/REMOTE_MODE.md)** - Technical details on remote mode
 
 ### Technical Documentation
+
 - **[MCP_INTEGRATION.md](./MCP_INTEGRATION.md)** - Architecture and API reference
 - **[docs/IMPLEMENTATION_SUMMARY.md](./docs/IMPLEMENTATION_SUMMARY.md)** - Implementation details
 - **[docs/ARCHITECTURE_DIAGRAMS.md](./docs/ARCHITECTURE_DIAGRAMS.md)** - Visual architecture guides
@@ -92,11 +110,13 @@ bun run dev
 
 Ingat provides three MCP server binaries for different use cases:
 
-| Binary | Transport | Best For | Setup Guide |
-|--------|-----------|----------|-------------|
-| **`mcp_stdio`** | stdin/stdout | VS Code, Cursor, Windsurf, Sublime | [IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md) |
-| **`mcp_bridge`** | HTTP/SSE | Zed, Claude Desktop | [IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md) |
-| **`mcp_service`** 🆕 | HTTP/REST + SSE | **Multi-client simultaneous usage** | [SETUP_GUIDE.md](./SETUP_GUIDE.md) |
+| Binary               | Transport       | Best For                            | Setup Guide                            |
+| -------------------- | --------------- | ----------------------------------- | -------------------------------------- |
+| **`mcp_stdio`**      | stdin/stdout    | VS Code, Cursor, Windsurf, Sublime  | [IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md) |
+| **`mcp_bridge`**     | HTTP/SSE        | Zed, Claude Desktop                 | [IDE_MCP_SETUP.md](./IDE_MCP_SETUP.md) |
+| **`mcp_service`** 🆕 | HTTP/REST + SSE | **Multi-client simultaneous usage** | [SETUP_GUIDE.md](./SETUP_GUIDE.md)     |
+
+**Tip (Windsurf/Cascade):** run `mcp-service` in the background and point Windsurf to `mcp-stdio`. Ingat will proxy calls to the service automatically.
 
 ### Building Binaries
 
@@ -140,6 +160,7 @@ Binaries will be in: `src-tauri/target/release/`
 ```
 
 **How it works:**
+
 - `mcp-service` holds the exclusive database lock
 - All clients (UI, IDEs) connect via HTTP
 - No database lock conflicts
@@ -151,14 +172,14 @@ See [docs/REMOTE_MODE.md](./docs/REMOTE_MODE.md) for details.
 
 ## 🎓 Supported IDEs
 
-| IDE | Status | Transport | Configuration |
-|-----|--------|-----------|---------------|
-| **VS Code** | ✅ Full Support | stdio | `.vscode/settings.json` |
-| **Cursor** | ✅ Full Support | stdio | `.cursor/mcp.json` |
-| **Windsurf** | ✅ Full Support | stdio | `.windsurf/mcp.json` |
-| **Sublime Text** | ✅ Full Support | stdio | Codeium config |
-| **Zed** | ✅ Full Support | SSE | `settings.json` |
-| **Claude Desktop** | ✅ Full Support | SSE | `claude_desktop_config.json` |
+| IDE                | Status          | Transport | Configuration                |
+| ------------------ | --------------- | --------- | ---------------------------- |
+| **VS Code**        | ✅ Full Support | stdio     | `.vscode/settings.json`      |
+| **Cursor**         | ✅ Full Support | stdio     | `.cursor/mcp.json`           |
+| **Windsurf**       | ✅ Full Support | stdio     | `.windsurf/mcp.json`         |
+| **Sublime Text**   | ✅ Full Support | stdio     | Codeium config               |
+| **Zed**            | ✅ Full Support | SSE       | `settings.json`              |
+| **Claude Desktop** | ✅ Full Support | SSE       | `claude_desktop_config.json` |
 
 **See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for complete setup instructions.**
 
@@ -176,9 +197,12 @@ export INGAT_DATA_DIR="/custom/path"    # Optional: custom data directory
 export INGAT_LOG="info"                 # Logging: trace, debug, info, warn, error
 ```
 
+**Note:** when a running `mcp-service` is detected, Ingat uses remote mode and proxies context operations to the service. In that mode, changing the embedding backend from the client is not supported.
+
 ### Data Storage
 
 Default data locations:
+
 - **Windows:** `%APPDATA%\ingat\Ingat\data`
 - **macOS:** `~/Library/Application Support/ingat/Ingat/data`
 - **Linux:** `~/.config/ingat/Ingat/data`
@@ -217,6 +241,7 @@ bun run tauri build --features fastembed-engine,mcp-server,tauri-plugin
 ```
 
 The installer will include:
+
 - Tauri UI application
 - `mcp-stdio.exe`
 - `mcp-bridge.exe`
@@ -245,29 +270,32 @@ cargo fmt
 
 ## 📦 Feature Flags
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `simple-embed` | ✅ | Lightweight deterministic hash embeddings |
-| `fastembed-engine` | ❌ | High-quality semantic embeddings (ONNX) |
-| `mcp-server` | ✅ | Model Context Protocol server support |
-| `tauri-plugin` | ✅ | Required for `mcp-service` HTTP server |
+| Flag               | Default | Description                               |
+| ------------------ | ------- | ----------------------------------------- |
+| `simple-embed`     | ✅      | Lightweight deterministic hash embeddings |
+| `fastembed-engine` | ❌      | High-quality semantic embeddings (ONNX)   |
+| `mcp-server`       | ✅      | Model Context Protocol server support     |
+| `tauri-plugin`     | ✅      | Required for `mcp-service` HTTP server    |
 
 ---
 
 ## 🎯 Use Cases
 
 ### Individual Developer
+
 - Store code snippets and solutions
 - Semantic search across your knowledge base
 - IDE integration for quick context access
 
 ### Team Usage
+
 - Run `mcp-service` on a shared server
 - Team members connect their IDEs remotely
 - Centralized context repository
 - See [UNIFIED_SERVICE_SETUP.md](./UNIFIED_SERVICE_SETUP.md)
 
 ### Multi-Tool Workflow
+
 - Use UI for browsing and management
 - Use VS Code for coding
 - Use Claude Desktop for AI assistance
@@ -296,6 +324,7 @@ Get-Process | Where-Object {$_.ProcessName -match "ingat|mcp"} | Stop-Process -F
 ### Service Won't Start
 
 **Check:**
+
 1. Is another instance running? `curl http://localhost:3200/health`
 2. Is the UI holding the DB lock? Close it first
 3. Port 3200 available? `netstat -an | findstr 3200`
@@ -303,6 +332,7 @@ Get-Process | Where-Object {$_.ProcessName -match "ingat|mcp"} | Stop-Process -F
 ### IDE Connection Fails
 
 **Check:**
+
 1. Service is running: `curl http://localhost:3200/health`
 2. Binary path is correct in IDE config
 3. Binaries are up to date: rebuild with `cargo build --release`
@@ -369,6 +399,7 @@ ingat/
 ## 🌟 What's New
 
 ### v0.1.0 - Initial Release
+
 - ✨ Remote mode for simultaneous UI + IDE usage
 - 🔧 `mcp-service` unified backend
 - 📖 Comprehensive setup guides
