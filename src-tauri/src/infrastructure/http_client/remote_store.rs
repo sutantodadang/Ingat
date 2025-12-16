@@ -152,9 +152,17 @@ impl VectorStore for RemoteVectorStore {
     }
 
     fn projects(&self) -> Result<Vec<String>, DomainError> {
-        // TODO: Implement projects endpoint on mcp-service
-        // For now, return empty list
-        Ok(Vec::new())
+        let url = self.api_url("projects");
+
+        let response = self
+            .agent
+            .get(&url)
+            .call()
+            .map_err(|e| DomainError::storage(format!("Failed to list projects: {}", e)))?;
+
+        response
+            .into_json::<Vec<String>>()
+            .map_err(|e| DomainError::storage(format!("Failed to parse projects response: {}", e)))
     }
 
     fn ping(&self) -> Result<(), DomainError> {

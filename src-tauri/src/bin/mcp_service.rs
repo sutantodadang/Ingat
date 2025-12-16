@@ -61,14 +61,12 @@ use axum::{
 
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
 use ingat_lib::application::{
-    services::VectorStore, ContextService, IngestContextRequest, SearchRequest, SearchResponse,
+    services::ContextApi,
+    IngestContextRequest, SearchRequest, SearchResponse,
 };
 
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
 use ingat_lib::domain::ContextSummary;
-
-#[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
-use ingat_lib::settings::ConfigManager;
 
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
 use serde::Serialize;
@@ -92,9 +90,7 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
 #[derive(Clone)]
 struct AppState {
-    service: Arc<RwLock<Arc<ContextService>>>,
-    store: Arc<dyn VectorStore>,
-    config: Arc<ConfigManager>,
+    service: Arc<RwLock<Arc<dyn ContextApi>>>,
     data_dir: std::path::PathBuf,
 }
 
@@ -180,6 +176,28 @@ async fn list_contexts(
                 Json(ErrorResponse {
                     error: e.to_string(),
                     code: "LIST_FAILED".to_string(),
+                }),
+            ))
+        }
+    }
+}
+
+#[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
+async fn list_projects(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<String>>, (StatusCode, Json<ErrorResponse>)> {
+    let service = state.service.read().await;
+    let service = Arc::clone(&service);
+
+    match service.projects() {
+        Ok(projects) => Ok(Json(projects)),
+        Err(e) => {
+            error!("Failed to list projects: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: e.to_string(),
+                    code: "PROJECTS_FAILED".to_string(),
                 }),
             ))
         }
@@ -312,8 +330,6 @@ async fn run_service() -> anyhow::Result<()> {
 
     let state = AppState {
         service: Arc::new(RwLock::new(app_handles.service)),
-        store: app_handles.store,
-        config: app_handles.config,
         data_dir: app_handles.data_dir,
     };
 
@@ -326,6 +342,7 @@ async fn run_service() -> anyhow::Result<()> {
         // REST API
         .route("/api/contexts", post(save_context).get(list_contexts))
         .route("/api/search", post(search_contexts))
+        .route("/api/projects", get(list_projects))
         .route("/api/stats", get(get_stats))
         // MCP endpoints
         .route("/sse", get(mcp_sse_handler))
