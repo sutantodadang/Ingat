@@ -5,5 +5,6 @@ pub mod models;
 
 pub use errors::DomainError;
 pub use models::{
-    ContextEmbedding, ContextKind, ContextRecord, ContextSummary, QueryFilters, RetrievalQuery,
+    ContextEmbedding, ContextKind, ContextRecord, ContextSummary, MemoryScope, QueryFilters,
+    RetrievalQuery,
 };

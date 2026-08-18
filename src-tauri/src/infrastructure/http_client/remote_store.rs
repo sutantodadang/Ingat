@@ -112,6 +112,18 @@ impl VectorStore for RemoteVectorStore {
                     kind: serde_json::from_value(item["kind"].clone()).ok()?,
                     embedding: ContextEmbedding::new("remote", Vec::new()),
                     created_at: serde_json::from_value(item["created_at"].clone()).ok()?,
+                    scope: item
+                        .get("scope")
+                        .and_then(|v| serde_json::from_value(v.clone()).ok())
+                        .unwrap_or_default(),
+                    author: item
+                        .get("author")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                    provenance: item
+                        .get("provenance")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
                 };
                 Some((record, score))
             })

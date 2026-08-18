@@ -35,6 +35,8 @@
 /// - `GET /api/contexts` - List contexts
 /// - `POST /api/search` - Search contexts
 /// - `GET /api/stats` - Get statistics
+/// - `POST /import` - Import team memory wire entries (idempotent)
+/// - `GET /export` - Export memories as wire entries (?scope=team&repository=<repo>)
 /// - `GET /sse` - MCP SSE transport
 /// - `POST /message` - MCP message endpoint
 /// - `POST /mcp-stdio` - MCP stdio-over-HTTP transport
@@ -62,11 +64,11 @@ use axum::{
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
 use ingat_lib::application::{
     services::ContextApi,
-    IngestContextRequest, SearchRequest, SearchResponse,
+    ImportResponse, IngestContextRequest, SearchRequest, SearchResponse, WireMemoryEntry,
 };
 
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
-use ingat_lib::domain::ContextSummary;
+use ingat_lib::domain::{ContextSummary, MemoryScope};
 
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
 use serde::Serialize;
@@ -247,6 +249,74 @@ async fn get_stats(State(state): State<AppState>) -> Result<Json<StatsResponse>,
     }
 }
 
+#[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
+async fn import_memories(
+    State(state): State<AppState>,
+    Json(entries): Json<Vec<WireMemoryEntry>>,
+) -> Result<Json<ImportResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let service = state.service.read().await;
+    let service = Arc::clone(&service);
+
+    match service.import_memories(entries) {
+        Ok(response) => {
+            info!(
+                "Imported {} memories ({} skipped)",
+                response.imported, response.skipped
+            );
+            Ok(Json(response))
+        }
+        Err(e) => {
+            error!("Failed to import memories: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: e.to_string(),
+                    code: "IMPORT_FAILED".to_string(),
+                }),
+            ))
+        }
+    }
+}
+
+#[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
+async fn export_memories(
+    State(state): State<AppState>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<Vec<WireMemoryEntry>>, (StatusCode, Json<ErrorResponse>)> {
+    let scope = match params.get("scope").map(String::as_str) {
+        None => None,
+        Some("team") => Some(MemoryScope::Team),
+        Some("personal") => Some(MemoryScope::Personal),
+        Some(other) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    error: format!("invalid scope '{other}': expected 'team' or 'personal'"),
+                    code: "INVALID_SCOPE".to_string(),
+                }),
+            ))
+        }
+    };
+    let repository = params.get("repository").cloned();
+
+    let service = state.service.read().await;
+    let service = Arc::clone(&service);
+
+    match service.export_memories(scope, repository) {
+        Ok(entries) => Ok(Json(entries)),
+        Err(e) => {
+            error!("Failed to export memories: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: e.to_string(),
+                    code: "EXPORT_FAILED".to_string(),
+                }),
+            ))
+        }
+    }
+}
+
 // ============================================================================
 // MCP SSE Handler (for Zed, Claude Desktop)
 // ============================================================================
@@ -344,6 +414,9 @@ async fn run_service() -> anyhow::Result<()> {
         .route("/api/search", post(search_contexts))
         .route("/api/projects", get(list_projects))
         .route("/api/stats", get(get_stats))
+        // Team memory sync (issue #10)
+        .route("/import", post(import_memories))
+        .route("/export", get(export_memories))
         // MCP endpoints
         .route("/sse", get(mcp_sse_handler))
         .route("/message", post(mcp_message_handler))

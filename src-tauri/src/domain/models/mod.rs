@@ -24,6 +24,12 @@ pub struct ContextRecord {
     pub kind: ContextKind,
     pub embedding: ContextEmbedding,
     pub created_at: DateTime<Utc>,
+    #[serde(default)]
+    pub scope: MemoryScope,
+    #[serde(default)]
+    pub author: Option<String>,
+    #[serde(default)]
+    pub provenance: Option<String>,
 }
 
 impl ContextRecord {
@@ -51,6 +57,9 @@ impl ContextRecord {
             kind,
             embedding,
             created_at: Utc::now(),
+            scope: MemoryScope::default(),
+            author: None,
+            provenance: None,
         }
     }
 
@@ -140,6 +149,41 @@ impl Default for ContextKind {
     }
 }
 
+impl ContextKind {
+    /// Kebab-case name used in the team-sync wire format (issue #10).
+    pub fn wire_name(&self) -> String {
+        match self {
+            ContextKind::CodeSnippet => "code-snippet".into(),
+            ContextKind::FixHistory => "fix-history".into(),
+            ContextKind::ProjectSummary => "project-summary".into(),
+            ContextKind::Discussion => "discussion".into(),
+            ContextKind::ToolLog => "tool-log".into(),
+            ContextKind::Other(label) => label.clone(),
+        }
+    }
+
+    pub fn from_wire_name(name: &str) -> Self {
+        match name {
+            "code-snippet" => ContextKind::CodeSnippet,
+            "fix-history" => ContextKind::FixHistory,
+            "project-summary" => ContextKind::ProjectSummary,
+            "discussion" => ContextKind::Discussion,
+            "tool-log" => ContextKind::ToolLog,
+            other => ContextKind::Other(other.to_string()),
+        }
+    }
+}
+
+/// Visibility scope of a memory: personal (default) or shared with the team.
+#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MemoryScope {
+    Team,
+    #[default]
+    Personal,
+}
+
 /// Vector representation of a context chunk.
 #[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,7 +205,7 @@ impl ContextEmbedding {
     }
 }
 
-fn sanitize_project(input: impl Into<String>) -> String {
+pub fn sanitize_project(input: impl Into<String>) -> String {
     sanitize_single_line(input).replace(['\\', '/', ':'], "-")
 }
 
@@ -175,7 +219,7 @@ fn sanitize_single_line(input: impl Into<String>) -> String {
         .to_string()
 }
 
-fn normalize_tags(tags: impl IntoIterator<Item = impl Into<String>>) -> Vec<String> {
+pub fn normalize_tags(tags: impl IntoIterator<Item = impl Into<String>>) -> Vec<String> {
     tags.into_iter()
         .filter_map(|tag| {
             let normalized = tag.into().trim().to_lowercase().replace(' ', "-");
