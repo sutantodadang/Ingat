@@ -5,10 +5,11 @@ use std::collections::BTreeSet;
 use ureq::Agent;
 
 use crate::application::dtos::{
-    HealthStatusResponse, IngestContextRequest, SearchRequest, SearchResponse, SummaryListResponse,
+    HealthStatusResponse, ImportResponse, IngestContextRequest, SearchRequest, SearchResponse,
+    SummaryListResponse, WireMemoryEntry,
 };
 use crate::application::services::ContextApi;
-use crate::domain::{ContextSummary, DomainError};
+use crate::domain::{ContextSummary, DomainError, MemoryScope};
 
 use super::{get_service_url, handle_http_error};
 
@@ -135,5 +136,54 @@ impl ContextApi for RemoteContextClient {
             message: "ready".into(),
             details: Some("remote mode".into()),
         })
+    }
+
+    fn import_memories(&self, entries: Vec<WireMemoryEntry>) -> Result<ImportResponse, DomainError> {
+        let url = format!("{}/import", self.base_url);
+
+        let response = self
+            .agent
+            .post(&url)
+            .send_json(serde_json::to_value(entries).map_err(|e| {
+                DomainError::storage(format!("failed to serialize import request: {e}"))
+            })?)
+            .map_err(|e| DomainError::storage(handle_http_error(e).to_string()))?;
+
+        response
+            .into_json::<ImportResponse>()
+            .map_err(|e| DomainError::storage(format!("failed to parse import response: {e}")))
+    }
+
+    fn export_memories(
+        &self,
+        scope: Option<MemoryScope>,
+        repository: Option<String>,
+    ) -> Result<Vec<WireMemoryEntry>, DomainError> {
+        let mut url = format!("{}/export", self.base_url);
+
+        let mut params = Vec::new();
+        if let Some(scope) = scope {
+            let value = match scope {
+                MemoryScope::Team => "team",
+                MemoryScope::Personal => "personal",
+            };
+            params.push(format!("scope={value}"));
+        }
+        if let Some(repository) = repository.as_deref() {
+            params.push(format!("repository={}", urlencoding::encode(repository)));
+        }
+        if !params.is_empty() {
+            url = format!("{}?{}", url, params.join("&"));
+        }
+
+        let response = self
+            .agent
+            .get(&url)
+            .call()
+            .map_err(|e| DomainError::storage(handle_http_error(e).to_string()))?;
+
+        response
+            .into_json::<Vec<WireMemoryEntry>>()
+            .map_err(|e| DomainError::storage(format!("failed to parse export response: {e}")))
     }
 }

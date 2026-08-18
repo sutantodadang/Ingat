@@ -14,6 +14,44 @@ use crate::{
 
 const CONTEXTS_TREE: &str = "contexts";
 
+/// Pre-scope on-disk layout (records written before v0.1.6). Bincode is not
+/// self-describing, so appended fields require this explicit fallback.
+#[derive(serde::Deserialize)]
+struct LegacyContextRecord {
+    id: Uuid,
+    project: String,
+    ide: String,
+    file_path: Option<String>,
+    language: Option<String>,
+    summary: String,
+    body: String,
+    tags: Vec<String>,
+    kind: crate::domain::ContextKind,
+    embedding: ContextEmbedding,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl From<LegacyContextRecord> for ContextRecord {
+    fn from(legacy: LegacyContextRecord) -> Self {
+        ContextRecord {
+            id: legacy.id,
+            project: legacy.project,
+            ide: legacy.ide,
+            file_path: legacy.file_path,
+            language: legacy.language,
+            summary: legacy.summary,
+            body: legacy.body,
+            tags: legacy.tags,
+            kind: legacy.kind,
+            embedding: legacy.embedding,
+            created_at: legacy.created_at,
+            scope: crate::domain::MemoryScope::default(),
+            author: None,
+            provenance: None,
+        }
+    }
+}
+
 /// Embedded vector store backed by `sled`.
 ///
 /// This adapter keeps the implementation intentionally simple by storing full
@@ -78,7 +116,13 @@ impl SledVectorStore {
     }
 
     fn decode_record(bytes: &IVec) -> Result<ContextRecord, DomainError> {
-        Self::deserialize(bytes.as_ref())
+        // Try the current layout first: allow_trailing_bytes would let the
+        // legacy layout silently swallow the new fields if tried first.
+        match Self::deserialize::<ContextRecord>(bytes.as_ref()) {
+            Ok(record) => Ok(record),
+            Err(_) => Self::deserialize::<LegacyContextRecord>(bytes.as_ref())
+                .map(ContextRecord::from),
+        }
     }
 
     fn cosine_similarity(query: &[f32], candidate: &[f32]) -> Result<f32, DomainError> {
@@ -208,5 +252,27 @@ impl VectorStore for SledVectorStore {
             .map_err(|err| DomainError::storage(format!("failed to flush db: {err}")))?;
 
         Ok(())
+    }
+
+    fn get(&self, id: &Uuid) -> Result<Option<ContextRecord>, DomainError> {
+        let value = self
+            .contexts
+            .get(Self::encode_key(id))
+            .map_err(|err| DomainError::storage(format!("failed to read context record: {err}")))?;
+
+        value.map(|bytes| Self::decode_record(&bytes)).transpose()
+    }
+
+    fn all(&self) -> Result<Vec<ContextRecord>, DomainError> {
+        let mut records = Vec::new();
+
+        for entry in self.contexts.iter() {
+            let (_, value) = entry.map_err(|err| {
+                DomainError::storage(format!("failed to read context record: {err}"))
+            })?;
+            records.push(Self::decode_record(&value)?);
+        }
+
+        Ok(records)
     }
 }

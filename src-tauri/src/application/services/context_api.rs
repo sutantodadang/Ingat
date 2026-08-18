@@ -1,7 +1,8 @@
 use crate::application::dtos::{
-    HealthStatusResponse, IngestContextRequest, SearchRequest, SearchResponse, SummaryListResponse,
+    HealthStatusResponse, ImportResponse, IngestContextRequest, SearchRequest, SearchResponse,
+    SummaryListResponse, WireMemoryEntry,
 };
-use crate::domain::{ContextSummary, DomainError};
+use crate::domain::{ContextSummary, DomainError, MemoryScope};
 
 /// Common interface used by both local (embedded) and remote (HTTP proxied) context backends.
 ///
@@ -25,4 +26,12 @@ pub trait ContextApi: Send + Sync {
     fn embedding_dimensions(&self) -> Option<usize> {
         None
     }
+
+    fn import_memories(&self, entries: Vec<WireMemoryEntry>) -> Result<ImportResponse, DomainError>;
+
+    fn export_memories(
+        &self,
+        scope: Option<MemoryScope>,
+        repository: Option<String>,
+    ) -> Result<Vec<WireMemoryEntry>, DomainError>;
 }

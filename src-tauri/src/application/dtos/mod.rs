@@ -4,7 +4,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::domain::{ContextKind, ContextSummary, QueryFilters, RetrievalQuery};
+use crate::domain::{ContextKind, ContextSummary, MemoryScope, QueryFilters, RetrievalQuery};
 
 /// Payload accepted from MCP clients or the UI when persisting a new context item.
 #[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
@@ -19,6 +19,8 @@ pub struct IngestContextRequest {
     pub tags: Vec<String>,
     #[serde(default)]
     pub kind: ContextKind,
+    #[serde(default)]
+    pub scope: MemoryScope,
 }
 
 /// DTO bridging the UI search form and the application layer.
@@ -108,4 +110,37 @@ pub struct UpdateEmbeddingBackendRequest {
 
 const fn default_limit() -> usize {
     8
+}
+
+/// One team-sync wire entry (v1). Unknown future fields are ignored by serde.
+#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WireMemoryEntry {
+    #[serde(default = "default_wire_version")]
+    pub v: u32,
+    pub id: String,
+    #[serde(default)]
+    pub hash: Option<String>,
+    pub kind: String,
+    pub content: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub author: Option<String>,
+    pub repository: String,
+    pub created_at: DateTime<Utc>,
+    #[serde(default)]
+    pub provenance: Option<String>,
+}
+
+/// Response for POST /import.
+#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportResponse {
+    pub imported: usize,
+    pub skipped: usize,
+}
+
+const fn default_wire_version() -> u32 {
+    1
 }

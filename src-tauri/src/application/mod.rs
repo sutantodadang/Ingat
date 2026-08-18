@@ -4,8 +4,8 @@ pub mod dtos;
 pub mod services;
 
 pub use dtos::{
-    EmbeddingBackendListResponse, EmbeddingBackendOption, HealthStatusResponse,
+    EmbeddingBackendListResponse, EmbeddingBackendOption, HealthStatusResponse, ImportResponse,
     IngestContextRequest, SearchRequest, SearchResponse, SummaryListResponse,
-    UpdateEmbeddingBackendRequest,
+    UpdateEmbeddingBackendRequest, WireMemoryEntry,
 };
 pub use services::ContextService;
