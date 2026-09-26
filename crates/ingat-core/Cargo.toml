@@ -1,6 +1,6 @@
 [package]
 name = "ingat-core"
-version = "0.1.6"
+version = "0.2.0"
 description = "Headless, Tauri-free core for the Ingat context memory system (domain, application services, storage and embedding adapters)."
 authors = ["sutantodadang"]
 edition = "2021"
