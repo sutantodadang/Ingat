@@ -12,6 +12,8 @@ use crate::{
     domain::{ContextEmbedding, ContextRecord, ContextSummary, DomainError, QueryFilters},
 };
 
+use super::similarity::cosine_similarity;
+
 const CONTEXTS_TREE: &str = "contexts";
 
 /// Pre-scope on-disk layout (records written before v0.1.6). Bincode is not
@@ -120,38 +122,10 @@ impl SledVectorStore {
         // legacy layout silently swallow the new fields if tried first.
         match Self::deserialize::<ContextRecord>(bytes.as_ref()) {
             Ok(record) => Ok(record),
-            Err(_) => Self::deserialize::<LegacyContextRecord>(bytes.as_ref())
-                .map(ContextRecord::from),
+            Err(_) => {
+                Self::deserialize::<LegacyContextRecord>(bytes.as_ref()).map(ContextRecord::from)
+            }
         }
-    }
-
-    fn cosine_similarity(query: &[f32], candidate: &[f32]) -> Result<f32, DomainError> {
-        if query.len() != candidate.len() {
-            return Err(DomainError::embedding(format!(
-                "embedding dimension mismatch: query {} vs candidate {}",
-                query.len(),
-                candidate.len()
-            )));
-        }
-
-        let mut dot = 0.0f32;
-        let mut q_norm = 0.0f32;
-        let mut c_norm = 0.0f32;
-
-        for (q, c) in query.iter().zip(candidate.iter()) {
-            dot += q * c;
-            q_norm += q * q;
-            c_norm += c * c;
-        }
-
-        let denom = q_norm.sqrt() * c_norm.sqrt();
-        if denom == 0.0 {
-            return Err(DomainError::embedding(
-                "cannot compute cosine similarity with zero vector",
-            ));
-        }
-
-        Ok((dot / denom).clamp(-1.0, 1.0))
     }
 
     fn record_matches_filters(record: &ContextRecord, filters: &QueryFilters) -> bool {
@@ -175,6 +149,33 @@ impl VectorStore for SledVectorStore {
         Ok(())
     }
 
+    fn insert_if_absent(&self, record: &ContextRecord) -> Result<bool, DomainError> {
+        let _guard = self.write_lock.lock();
+
+        let key = Self::encode_key(&record.id);
+        if self
+            .contexts
+            .contains_key(key)
+            .map_err(|err| DomainError::storage(format!("failed to read context record: {err}")))?
+        {
+            return Ok(false);
+        }
+
+        let bytes = Self::serialize(record)?;
+        self.contexts
+            .insert(key, bytes)
+            .map_err(|err| DomainError::storage(format!("failed to persist context: {err}")))?;
+        self.contexts
+            .flush()
+            .map_err(|err| DomainError::storage(format!("failed to flush contexts: {err}")))?;
+
+        Ok(true)
+    }
+
+    fn count(&self) -> Result<u64, DomainError> {
+        Ok(self.contexts.len() as u64)
+    }
+
     fn search(
         &self,
         embedding: &ContextEmbedding,
@@ -193,7 +194,7 @@ impl VectorStore for SledVectorStore {
                 continue;
             }
 
-            let score = Self::cosine_similarity(&embedding.vector, &record.embedding.vector)?;
+            let score = cosine_similarity(&embedding.vector, &record.embedding.vector)?;
 
             scored.push((record, score));
         }
@@ -335,5 +336,139 @@ mod tests {
         assert!(decoded.provenance.is_none());
         assert_eq!(decoded.project, "kode");
         assert_eq!(decoded.body, "legacy body");
+    }
+}
+
+#[cfg(all(test, feature = "legacy-export"))]
+mod export_tests {
+    use std::collections::HashMap;
+
+    use super::*;
+    use crate::application::dtos::LegacyExportLine;
+    use crate::domain::{ContextKind, MemoryScope};
+
+    #[derive(serde::Serialize)]
+    struct LegacyFixture {
+        id: Uuid,
+        project: String,
+        ide: String,
+        file_path: Option<String>,
+        language: Option<String>,
+        summary: String,
+        body: String,
+        tags: Vec<String>,
+        kind: ContextKind,
+        embedding: ContextEmbedding,
+        created_at: chrono::DateTime<chrono::Utc>,
+    }
+
+    fn legacy_bytes(id: Uuid, body: &str) -> Vec<u8> {
+        let record = LegacyFixture {
+            id,
+            project: "legacy-project".to_string(),
+            ide: "old-ide".to_string(),
+            file_path: Some("old/path.rs".to_string()),
+            language: Some("rust".to_string()),
+            summary: "legacy summary".to_string(),
+            body: body.to_string(),
+            tags: vec!["legacy".to_string()],
+            kind: ContextKind::Discussion,
+            embedding: ContextEmbedding::new("ingat/simple-hash", vec![1.0, 0.0]),
+            created_at: chrono::Utc::now(),
+        };
+        bincode::options()
+            .with_fixint_encoding()
+            .allow_trailing_bytes()
+            .serialize(&record)
+            .unwrap()
+    }
+
+    #[test]
+    fn export_preserves_non_vector_fields_and_source() {
+        let dir = tempfile::tempdir().unwrap();
+        let store_path = dir.path().join("store");
+        let current_id = Uuid::new_v4();
+        let legacy_id = Uuid::new_v4();
+
+        {
+            let store = SledVectorStore::open(&store_path).unwrap();
+            let current = ContextRecord {
+                id: current_id,
+                project: "kode".to_string(),
+                ide: "vscode".to_string(),
+                file_path: Some("src/lib.rs".to_string()),
+                language: Some("rust".to_string()),
+                summary: "current summary".to_string(),
+                body: "current body".to_string(),
+                tags: vec!["a".to_string(), "b".to_string()],
+                kind: ContextKind::CodeSnippet,
+                embedding: ContextEmbedding::new("ingat/simple-hash", vec![1.0, 0.0]),
+                created_at: chrono::Utc::now(),
+                scope: MemoryScope::Team,
+                author: Some("alice".to_string()),
+                provenance: Some("user".to_string()),
+            };
+            store.persist(&current).unwrap();
+            store
+                .contexts
+                .insert(
+                    SledVectorStore::encode_key(&legacy_id),
+                    legacy_bytes(legacy_id, "legacy body"),
+                )
+                .unwrap();
+        }
+
+        let out = dir.path().join("export.jsonl");
+        let count =
+            crate::infrastructure::storage::export::export_legacy_jsonl(&store_path, &out).unwrap();
+        assert_eq!(count, 2);
+
+        let content = std::fs::read_to_string(&out).unwrap();
+        let lines: Vec<LegacyExportLine> = content
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let by_id: HashMap<Uuid, ContextRecord> = lines
+            .iter()
+            .map(|line| (line.record.id, line.record.clone()))
+            .collect();
+
+        let current = by_id.get(&current_id).expect("current record exported");
+        assert_eq!(current.project, "kode");
+        assert_eq!(current.ide, "vscode");
+        assert_eq!(current.file_path.as_deref(), Some("src/lib.rs"));
+        assert_eq!(current.language.as_deref(), Some("rust"));
+        assert_eq!(current.summary, "current summary");
+        assert_eq!(current.body, "current body");
+        assert_eq!(current.tags, vec!["a".to_string(), "b".to_string()]);
+        assert_eq!(current.kind, ContextKind::CodeSnippet);
+        assert_eq!(current.scope, MemoryScope::Team);
+        assert_eq!(current.author.as_deref(), Some("alice"));
+        assert_eq!(current.provenance.as_deref(), Some("user"));
+
+        let legacy = by_id.get(&legacy_id).expect("legacy record exported");
+        assert_eq!(legacy.scope, MemoryScope::Personal);
+        assert_eq!(legacy.body, "legacy body");
+
+        // Source store is untouched.
+        let reopened = SledVectorStore::open(&store_path).unwrap();
+        assert_eq!(reopened.all().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn export_refuses_locked_store_and_keeps_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let store_path = dir.path().join("store");
+        let out = dir.path().join("export.jsonl");
+        std::fs::write(&out, b"sentinel\n").unwrap();
+
+        // Hold the sled ownership lock for the duration of the export attempt.
+        let _guard = SledVectorStore::open(&store_path).unwrap();
+
+        let err = crate::infrastructure::storage::export::export_legacy_jsonl(&store_path, &out)
+            .unwrap_err();
+        assert!(err.to_string().contains("sled"), "unexpected error: {err}");
+        assert_eq!(std::fs::read_to_string(&out).unwrap(), "sentinel\n");
+        assert!(!dir.path().join("export.jsonl.tmp").exists());
     }
 }
