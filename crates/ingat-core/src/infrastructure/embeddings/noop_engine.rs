@@ -12,6 +12,7 @@ use crate::{application::services::EmbeddingEngine, domain::DomainError};
 /// by the remote mcp-service. If `embed` is called, it will return an error
 /// indicating that the operation should have been proxied to the remote service.
 pub struct NoOpEmbeddingEngine {
+    #[allow(dead_code)]
     model_name: String,
     dimensions: usize,
 }

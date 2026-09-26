@@ -1,11 +1,8 @@
-//! Application layer wiring DTOs and services for Ingat.
+//! Application layer re-exported from `ingat-core`.
+//!
+//! The DTOs and services (including `ContextService`, `ContextApi`,
+//! `VectorStore` and `EmbeddingEngine`) live in the headless core crate. This
+//! shim keeps the desktop/server call-sites on their existing `crate::application`
+//! paths.
 
-pub mod dtos;
-pub mod services;
-
-pub use dtos::{
-    EmbeddingBackendListResponse, EmbeddingBackendOption, HealthStatusResponse, ImportResponse,
-    IngestContextRequest, SearchRequest, SearchResponse, SummaryListResponse,
-    UpdateEmbeddingBackendRequest, WireMemoryEntry,
-};
-pub use services::ContextService;
+pub use ingat_core::application::*;

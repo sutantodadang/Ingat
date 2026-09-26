@@ -1,10 +1,6 @@
-//! Domain layer: core business entities and value objects for Ingat.
+//! Domain layer re-exported from `ingat-core`.
+//!
+//! Records, value objects and errors live in the headless core crate. This shim
+//! keeps the desktop/server call-sites on their existing `crate::domain` paths.
 
-pub mod errors;
-pub mod models;
-
-pub use errors::DomainError;
-pub use models::{
-    ContextEmbedding, ContextKind, ContextRecord, ContextSummary, MemoryScope, QueryFilters,
-    RetrievalQuery,
-};
+pub use ingat_core::domain::*;
