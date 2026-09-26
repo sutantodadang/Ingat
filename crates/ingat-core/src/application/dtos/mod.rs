@@ -4,7 +4,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::domain::{ContextKind, ContextSummary, MemoryScope, QueryFilters, RetrievalQuery};
+use crate::domain::{
+    ContextKind, ContextRecord, ContextSummary, MemoryScope, QueryFilters, RetrievalQuery,
+};
 
 /// Payload accepted from MCP clients or the UI when persisting a new context item.
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
@@ -143,4 +145,15 @@ pub struct ImportResponse {
 
 const fn default_wire_version() -> u32 {
     1
+}
+
+/// Serialized legacy export envelope (one JSON line per record).
+///
+/// Public so a consuming importer (Kode) can deserialize `ingat_export` output
+/// and feed each `record` to `ContextService::import_record`.
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LegacyExportLine {
+    pub v: u32,
+    pub record: ContextRecord,
 }

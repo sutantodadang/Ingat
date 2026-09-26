@@ -20,3 +20,6 @@
 pub mod application;
 pub mod domain;
 pub mod infrastructure;
+
+#[cfg(feature = "sqlite-store")]
+pub use application::{open_embedded, EmbeddedOptions};

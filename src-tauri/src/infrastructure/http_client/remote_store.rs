@@ -54,6 +54,13 @@ impl VectorStore for RemoteVectorStore {
         Ok(())
     }
 
+    fn insert_if_absent(&self, record: &ContextRecord) -> Result<bool, DomainError> {
+        // The remote HTTP service exposes no compare-and-set endpoint, so it
+        // always accepts the write; duplicate detection is not available here.
+        self.persist(record)?;
+        Ok(true)
+    }
+
     fn search(
         &self,
         embedding: &ContextEmbedding,

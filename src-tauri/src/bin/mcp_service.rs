@@ -63,8 +63,8 @@ use axum::{
 
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]
 use ingat_lib::application::{
-    services::ContextApi,
-    ImportResponse, IngestContextRequest, SearchRequest, SearchResponse, WireMemoryEntry,
+    services::ContextApi, ImportResponse, IngestContextRequest, SearchRequest, SearchResponse,
+    WireMemoryEntry,
 };
 
 #[cfg(all(feature = "mcp-server", feature = "tauri-plugin"))]

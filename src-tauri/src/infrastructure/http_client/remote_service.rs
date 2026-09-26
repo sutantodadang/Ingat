@@ -138,7 +138,10 @@ impl ContextApi for RemoteContextClient {
         })
     }
 
-    fn import_memories(&self, entries: Vec<WireMemoryEntry>) -> Result<ImportResponse, DomainError> {
+    fn import_memories(
+        &self,
+        entries: Vec<WireMemoryEntry>,
+    ) -> Result<ImportResponse, DomainError> {
         let url = format!("{}/import", self.base_url);
 
         let response = self
