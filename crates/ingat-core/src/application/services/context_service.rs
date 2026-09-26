@@ -91,6 +91,15 @@ pub trait VectorStore: Send + Sync {
     fn all(&self) -> Result<Vec<ContextRecord>, DomainError> {
         Err(DomainError::storage("all is not supported by this store"))
     }
+
+    /// Total number of stored records, if the store can report it cheaply.
+    fn count(&self) -> Result<u64, DomainError> {
+        Ok(self.all()?.len() as u64)
+    }
+
+    /// Atomically insert `record` only when its UUID is absent. Returns `true`
+    /// only when this call actually inserted the record.
+    fn insert_if_absent(&self, record: &ContextRecord) -> Result<bool, DomainError>;
 }
 
 /// The orchestrator responsible for validation, embedding, and delegating to storage.
@@ -198,6 +207,24 @@ impl ContextService {
         self.store.projects()
     }
 
+    /// Number of records currently stored.
+    pub fn record_count(&self) -> Result<u64, DomainError> {
+        self.store.count()
+    }
+
+    /// Imports a single record, preserving its UUID, scope and metadata while
+    /// re-embedding the content with this service's model. Skips (returns
+    /// `false`) when the UUID already exists, without overwriting it.
+    pub fn import_record(&self, record: &ContextRecord) -> Result<bool, DomainError> {
+        let text = format!("{}\n{}", record.summary.trim(), record.body.trim());
+        let vector = self.embedder.embed(&self.config.embedding_model, &text)?;
+
+        let mut target = record.clone();
+        target.embedding = ContextEmbedding::new(&self.config.embedding_model, vector);
+
+        self.store.insert_if_absent(&target)
+    }
+
     pub fn embedding_dimensions(&self) -> Option<usize> {
         self.embedder.dims(self.config.embedding_model())
     }
@@ -286,9 +313,14 @@ impl ContextService {
                 provenance: entry.provenance,
             };
 
-            self.store.persist(&record)?;
-            existing_hashes.insert(hash);
-            imported += 1;
+            // Atomic insert resolves races between concurrent importers: only
+            // the process that actually inserts counts the record as new.
+            if self.store.insert_if_absent(&record)? {
+                existing_hashes.insert(hash);
+                imported += 1;
+            } else {
+                skipped += 1;
+            }
         }
 
         Ok(ImportResponse { imported, skipped })
@@ -425,7 +457,10 @@ impl ContextApi for ContextService {
         ContextService::embedding_dimensions(self)
     }
 
-    fn import_memories(&self, entries: Vec<WireMemoryEntry>) -> Result<ImportResponse, DomainError> {
+    fn import_memories(
+        &self,
+        entries: Vec<WireMemoryEntry>,
+    ) -> Result<ImportResponse, DomainError> {
         ContextService::import_memories(self, entries)
     }
 
@@ -497,6 +532,15 @@ mod tests {
 
         fn all(&self) -> Result<Vec<ContextRecord>, DomainError> {
             Ok(self.records.lock().unwrap().values().cloned().collect())
+        }
+
+        fn insert_if_absent(&self, record: &ContextRecord) -> Result<bool, DomainError> {
+            let mut guard = self.records.lock().unwrap();
+            if guard.contains_key(&record.id) {
+                return Ok(false);
+            }
+            guard.insert(record.id, record.clone());
+            Ok(true)
         }
     }
 

@@ -284,15 +284,19 @@ cargo tree -p ingat-core --no-default-features
 cargo test -p ingat-core
 ```
 
-| Core feature       | Default | Description                                        |
-| ------------------ | ------- | -------------------------------------------------- |
-| `sled-store`       | ✅      | Legacy sled-backed `VectorStore` adapter           |
-| `schema`           | ❌      | Derive `schemars::JsonSchema` for the wire DTOs    |
-| `fastembed-engine` | ❌      | Optional `fastembed`/ONNX embedding engine         |
-| `sqlite-store`     | ❌      | Reserved for the storage follow-up (no adapter yet) |
+| Core feature       | Default | Description                                            |
+| ------------------ | ------- | ------------------------------------------------------ |
+| `sled-store`       | ✅      | Legacy sled-backed `VectorStore` adapter               |
+| `sqlite-store`     | ❌      | Concurrent SQLite adapter + `open_embedded`            |
+| `legacy-export`    | ❌      | Offline `ingat_export` CLI to JSONL (implies sled)     |
+| `schema`           | ❌      | Derive `schemars::JsonSchema` for the wire DTOs        |
+| `fastembed-engine` | ❌      | Optional `fastembed`/ONNX embedding engine             |
 
-See [crates/ingat-core/README.md](./crates/ingat-core/README.md) for the API
-and a minimal consumer example.
+The `sqlite-store` feature adds a concurrent store safe for multiple processes
+(`open_embedded` + the stable `ingat/simple-sha256-v1` hash model), and
+`legacy-export` adds an `ingat_export` binary that migrates a stopped sled store
+to JSONL. See [crates/ingat-core/README.md](./crates/ingat-core/README.md) for
+the API, feature flags and a minimal consumer example.
 
 ---
 

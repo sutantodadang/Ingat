@@ -23,8 +23,10 @@ ahash = "0.8"
 
 # Optional integrations
 schemars = { version = "1.1", features = ["derive", "chrono04"], optional = true }
+serde_json = { version = "1", optional = true }
 bincode = { version = "1", optional = true }
 sled = { version = "0.34", optional = true }
+rusqlite = { version = "0.40.2", features = ["bundled"], optional = true }
 fastembed = { version = "5", default-features = false, features = [
     "hf-hub-native-tls",
     "ort-download-binaries",
@@ -33,13 +35,25 @@ fastembed = { version = "5", default-features = false, features = [
 [dev-dependencies]
 tempfile = "3"
 
+[[bin]]
+name = "ingat_export"
+path = "src/bin/ingat_export.rs"
+required-features = ["legacy-export"]
+
+[[bin]]
+name = "ingat_test_driver"
+path = "src/bin/ingat_test_driver.rs"
+required-features = ["sqlite-store"]
+
 [features]
 default = ["sled-store"]
 # Derive `schemars::JsonSchema` for wire DTOs (used by the MCP server).
 schema = ["dep:schemars"]
 # Legacy sled-backed storage adapter.
 sled-store = ["dep:sled", "dep:bincode"]
-# Reserved for the SQLite storage follow-up; intentionally dependency-free today.
-sqlite-store = []
+# Concurrent SQLite storage adapter (rusqlite bundled).
+sqlite-store = ["dep:rusqlite", "dep:serde_json"]
+# Offline `ingat_export` CLI for migrating a stopped Sled store to JSONL.
+legacy-export = ["sled-store", "dep:serde_json"]
 # Optional fastembed/ONNX embedding engine.
 fastembed-engine = ["dep:fastembed"]

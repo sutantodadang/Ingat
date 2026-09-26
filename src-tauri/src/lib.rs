@@ -45,10 +45,7 @@ struct AppState {
 }
 
 impl AppState {
-    fn new(
-        handles: AppHandles,
-        service_manager: Arc<ServiceManager>,
-    ) -> Self {
+    fn new(handles: AppHandles, service_manager: Arc<ServiceManager>) -> Self {
         Self {
             service: Arc::new(RwLock::new(handles.service)),
             store: handles.store,
@@ -230,10 +227,7 @@ fn try_run() -> Result<()> {
     }
 
     let handles = build_environment().context("failed to bootstrap Ingat environment")?;
-    let app_state = AppState::new(
-        handles,
-        Arc::clone(&service_manager),
-    );
+    let app_state = AppState::new(handles, Arc::clone(&service_manager));
 
     #[cfg(feature = "mcp-server")]
     let mcp_runtime = {
