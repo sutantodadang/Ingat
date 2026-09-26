@@ -276,3 +276,64 @@ impl VectorStore for SledVectorStore {
         Ok(records)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::{ContextEmbedding, ContextKind, MemoryScope};
+
+    /// Mirrors the pre-scope on-disk layout so the fixture encodes exactly the
+    /// bytes an older Ingat release would have written.
+    #[derive(serde::Serialize)]
+    struct LegacyFixture {
+        id: Uuid,
+        project: String,
+        ide: String,
+        file_path: Option<String>,
+        language: Option<String>,
+        summary: String,
+        body: String,
+        tags: Vec<String>,
+        kind: ContextKind,
+        embedding: ContextEmbedding,
+        created_at: chrono::DateTime<chrono::Utc>,
+    }
+
+    #[test]
+    fn legacy_records_decode_as_personal() {
+        let dir = tempfile::tempdir().expect("temporary fixture directory");
+        let store = SledVectorStore::open(dir.path()).expect("open temporary sled store");
+
+        let id = Uuid::new_v4();
+        let legacy = LegacyFixture {
+            id,
+            project: "kode".to_string(),
+            ide: "vscode".to_string(),
+            file_path: Some("src/main.rs".to_string()),
+            language: Some("rust".to_string()),
+            summary: "legacy summary".to_string(),
+            body: "legacy body".to_string(),
+            tags: vec!["legacy".to_string()],
+            kind: ContextKind::Discussion,
+            embedding: ContextEmbedding::new("ingat/simple-hash", vec![1.0, 0.0]),
+            created_at: chrono::Utc::now(),
+        };
+
+        let bytes = bincode::options()
+            .with_fixint_encoding()
+            .allow_trailing_bytes()
+            .serialize(&legacy)
+            .expect("encode legacy fixture");
+        store
+            .contexts
+            .insert(SledVectorStore::encode_key(&id), bytes)
+            .expect("write legacy fixture");
+
+        let decoded = store.get(&id).expect("read").expect("record present");
+        assert_eq!(decoded.scope, MemoryScope::Personal);
+        assert!(decoded.author.is_none());
+        assert!(decoded.provenance.is_none());
+        assert_eq!(decoded.project, "kode");
+        assert_eq!(decoded.body, "legacy body");
+    }
+}

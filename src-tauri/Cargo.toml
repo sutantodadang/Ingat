@@ -41,14 +41,13 @@ tauri-build = { version = "2", features = [] }
 tempfile = "3"
 
 [dependencies]
+# Headless core: domain, application services, storage and embedding adapters.
+ingat-core = { path = "../crates/ingat-core" }
+
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 
 # Optional integrations
-fastembed = { version = "5", default-features = false, features = [
-    "hf-hub-native-tls",
-    "ort-download-binaries",
-], optional = true }
 rmcp = { version = "0.8.5", features = [
     "server",
     "transport-io",
@@ -61,15 +60,12 @@ axum = { version = "0.7", features = ["tokio"], optional = true }
 async-stream = { version = "0.3", optional = true }
 futures = { version = "0.3", optional = true }
 
-# Core stack
+# Desktop/server stack
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-bincode = "1"
 anyhow = "1"
-thiserror = "1"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-sled = "0.34"
 parking_lot = "0.12"
 directories = "5"
 tokio = { version = "1", features = [
@@ -84,7 +80,6 @@ tokio = { version = "1", features = [
     "signal",
 ] }
 tokio-util = { version = "0.7", features = ["full"] }
-schemars = { version = "1.1", features = ["derive"], optional = true }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = [
     "env-filter",
@@ -93,10 +88,7 @@ base64 = "0.22"
 ureq = { version = "2.10", features = ["json"] }
 urlencoding = "2.1"
 which = "6.0"
-ahash = "0.8"
 tauri-plugin-fs = "2"
-sha2 = "0.10"
-ulid = "1"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["signal"] }
@@ -114,6 +106,6 @@ tauri-plugin-window-state = "2"
 [features]
 default = ["simple-embed", "mcp-server"]
 simple-embed = []
-fastembed-engine = ["dep:fastembed"]
-mcp-server = ["dep:rmcp", "dep:schemars", "dep:tracing-subscriber"]
+fastembed-engine = ["ingat-core/fastembed-engine"]
+mcp-server = ["dep:rmcp", "dep:tracing-subscriber", "ingat-core/schema"]
 tauri-plugin = ["dep:axum", "dep:async-stream", "dep:futures"]

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-#[cfg(feature = "mcp-server")]
+#[cfg(feature = "schema")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -8,11 +8,11 @@ use uuid::Uuid;
 pub const MAX_TAGS: usize = 12;
 
 /// Core record representing a stored context chunk, embedding, and its metadata.
-#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
-#[cfg_attr(feature = "mcp-server", schemars(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(rename_all = "camelCase"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextRecord {
-    #[cfg_attr(feature = "mcp-server", schemars(with = "String"))]
+    #[cfg_attr(feature = "schema", schemars(with = "String"))]
     pub id: Uuid,
     pub project: String,
     pub ide: String,
@@ -100,11 +100,11 @@ impl ContextRecord {
 }
 
 /// Lightweight projection returned to the UI for history listings.
-#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
-#[cfg_attr(feature = "mcp-server", schemars(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(rename_all = "camelCase"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextSummary {
-    #[cfg_attr(feature = "mcp-server", schemars(with = "String"))]
+    #[cfg_attr(feature = "schema", schemars(with = "String"))]
     pub id: Uuid,
     pub project: String,
     pub summary: String,
@@ -114,7 +114,7 @@ pub struct ContextSummary {
 }
 
 /// Input for retrieval requests originating from the UI or MCP clients.
-#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetrievalQuery {
     pub prompt: String,
@@ -123,7 +123,7 @@ pub struct RetrievalQuery {
 }
 
 /// Supported filters for narrowing search results.
-#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct QueryFilters {
     pub project: Option<String>,
@@ -132,7 +132,7 @@ pub struct QueryFilters {
     pub ide: Option<String>,
 }
 
-#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContextKind {
     CodeSnippet,
@@ -175,7 +175,7 @@ impl ContextKind {
 }
 
 /// Visibility scope of a memory: personal (default) or shared with the team.
-#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum MemoryScope {
@@ -185,7 +185,7 @@ pub enum MemoryScope {
 }
 
 /// Vector representation of a context chunk.
-#[cfg_attr(feature = "mcp-server", derive(JsonSchema))]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextEmbedding {
     pub model: String,

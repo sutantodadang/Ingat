@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = ["src-tauri", "crates/ingat-core"]
+
+# Build artifacts stay under `src-tauri/target` (see `.cargo/config.toml`) so the
+# Tauri CLI, release workflow and build-binaries scripts keep working unchanged.

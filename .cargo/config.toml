@@ -1,0 +1,5 @@
+# The workspace root is the repository root, but the Tauri CLI, the release
+# workflow and the build-binaries scripts all expect artifacts in
+# `src-tauri/target`. Pin the target directory to preserve those paths.
+[build]
+target-dir = "src-tauri/target"

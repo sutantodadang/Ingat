@@ -252,19 +252,47 @@ The installer will include:
 ## 🧪 Testing
 
 ```bash
-# Rust tests
-cd src-tauri
-cargo test
+# Rust tests (run from the workspace root)
+cargo test                 # all crates
+cargo test -p ingat-core   # headless core only (no desktop system packages)
 
 # Check compilation
-cargo check --all-features
+cargo check --workspace --all-features
 
 # Lint
-cargo clippy --all-features
+cargo clippy --workspace --all-features
 
 # Format
 cargo fmt
 ```
+
+---
+
+## 🧩 ingat-core (headless)
+
+The retrieval path is also available as a Tauri-free library crate,
+[`crates/ingat-core`](./crates/ingat-core/README.md), for in-process consumers
+such as Kode. It exposes the same domain, application services and
+storage/embedding adapters under stable paths (`domain`,
+`application::{dtos,services}`, `infrastructure::{storage,embeddings}`) with no
+GUI, HTTP service, MCP transport or OS data-path discovery. The desktop crate
+depends on it and re-exports it, so existing call-sites are unchanged.
+
+```bash
+# Headless build: no Tauri/plugins/axum/rmcp/fastembed in the dependency tree
+cargo tree -p ingat-core --no-default-features
+cargo test -p ingat-core
+```
+
+| Core feature       | Default | Description                                        |
+| ------------------ | ------- | -------------------------------------------------- |
+| `sled-store`       | ✅      | Legacy sled-backed `VectorStore` adapter           |
+| `schema`           | ❌      | Derive `schemars::JsonSchema` for the wire DTOs    |
+| `fastembed-engine` | ❌      | Optional `fastembed`/ONNX embedding engine         |
+| `sqlite-store`     | ❌      | Reserved for the storage follow-up (no adapter yet) |
+
+See [crates/ingat-core/README.md](./crates/ingat-core/README.md) for the API
+and a minimal consumer example.
 
 ---
 
@@ -356,14 +384,18 @@ Contributions are welcome! Please:
 
 ```
 ingat/
+├── Cargo.toml              # Workspace root (members: src-tauri, crates/ingat-core)
+├── crates/
+│   └── ingat-core/         # Headless, Tauri-free core (domain/application/infrastructure)
 ├── src/                    # Frontend (React + TypeScript)
-├── src-tauri/              # Backend (Rust)
+├── src-tauri/              # Desktop/MCP/HTTP crate (Tauri app + binaries)
 │   ├── src/
-│   │   ├── application/    # Business logic
-│   │   ├── domain/         # Domain models
-│   │   ├── infrastructure/ # External adapters
+│   │   ├── application/    # Re-exports `ingat-core` (dto/service paths preserved)
+│   │   ├── domain/         # Re-exports `ingat-core`
+│   │   ├── infrastructure/ # Re-exports core adapters + HTTP client
 │   │   ├── interfaces/     # MCP servers
-│   │   └── bin/            # Standalone binaries
+│   │   ├── bin/            # Standalone binaries
+│   │   └── settings.rs, power_manager.rs, service_manager.rs
 │   └── Cargo.toml
 ├── docs/                   # Additional documentation
 └── scripts/                # Helper scripts
